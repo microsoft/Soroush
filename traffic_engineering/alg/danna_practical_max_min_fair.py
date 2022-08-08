@@ -16,12 +16,11 @@ def get_rates(U, problem:problem.Problem, paths, link_cap, break_down=False):
 
     list_possible_paths = tuplelist()
     link_src_dst_path_dict = tupledict()
-    index = 0
     frozen_flows = dict()
     unfrozen_flows = dict()
 
     list_demands = [0.0]
-
+    flow_id_to_flow_rate_mapping = defaultdict(list)
     for fid, (src, dst, demand) in problem.sparse_commodity_list:
         max_demand = max(max_demand, demand)
         min_demand = min(min_demand, demand)
@@ -29,12 +28,14 @@ def get_rates(U, problem:problem.Problem, paths, link_cap, break_down=False):
         list_demands.append(demand)
         if src == dst:
             continue
+        index = 0
         for path in paths[(src, dst)]:
             list_possible_paths.append((src, dst, index))
             for i in range(1, len(path)):
                 if (path[i - 1], path[i]) not in link_src_dst_path_dict:
                     link_src_dst_path_dict[path[i - 1], path[i]] = list()
                 link_src_dst_path_dict[path[i - 1], path[i]].append((src, dst, index))
+            flow_id_to_flow_rate_mapping[src, dst].append(0)
             index += 1
         if demand < U:
             frozen_flows[src, dst] = demand
@@ -57,12 +58,14 @@ def get_rates(U, problem:problem.Problem, paths, link_cap, break_down=False):
         solve_optimization_freeze_link_dur = 0
         retrieve_values_freeze_link_dur = 0
 
+    last_model = feas_model
     while len(frozen_flows) < num_flows:
         # if iter_no == 49:
         #     print("found")
         print(f"iter no. {iter_no}, num remaining flows {len(unfrozen_flows)}, total flows {num_flows}")
         prev_id_feas = binary_search_saturated_demands(problem, frozen_flows, unfrozen_flows, feas_model, feas_constraint_dict,
                                                        prev_id_feas, sorted_list_unique_demands, break_down=break_down)
+        last_model = feas_model
 
         if break_down:
             prev_id_feas, e_d, b_d, f_d = prev_id_feas
@@ -75,6 +78,7 @@ def get_rates(U, problem:problem.Problem, paths, link_cap, break_down=False):
         output = find_next_saturated_edge(problem, frozen_flows, unfrozen_flows, mcf_model, mcf_thru_var,
                                           mcf_constraint_dict, link_src_dst_path_dict, flow_var, link_cap,
                                           debug=False, break_down=break_down)
+        last_model = mcf_model
         if break_down:
             time_model, time_optimize, time_retrieve = output
             create_model_freeze_link_dur += time_model
@@ -82,13 +86,18 @@ def get_rates(U, problem:problem.Problem, paths, link_cap, break_down=False):
             retrieve_values_freeze_link_dur += time_retrieve
         iter_no += 1
 
+    flow_vars = last_model.getAttr('x', flow_var)
+    for (i, j, pidx), rate in flow_vars.items():
+        if (i, j) in frozen_flows:
+            flow_id_to_flow_rate_mapping[i, j][pidx] = rate
+
     if break_down:
         dur = (pre_dur, exponential_search_dur, binary_search_dur, freeze_demand_limited_dur,
                create_model_freeze_link_dur, solve_optimization_freeze_link_dur, retrieve_values_freeze_link_dur)
     else:
         dur = (datetime.now() - st_time).total_seconds()
     print("danna practical max min fair dur: ", dur)
-    return frozen_flows, dur
+    return frozen_flows, flow_id_to_flow_rate_mapping, dur
 
 
 def binary_search_saturated_demands(problem:problem.Problem, frozen_flows, unfrozen_flows, model, constraint_dict,
@@ -176,7 +185,7 @@ def create_initial_feasibility_model(problem:problem.Problem, link_cap, link_src
         sum_flow = 0
         for (src, dst, idx) in link_src_dst_path_dict[e]:
             sum_flow += flow[(src, dst, idx)]
-        m.addConstr(sum_flow, GRB.LESS_EQUAL, link_cap, name="capacity_" + str(index))
+        m.addConstr(sum_flow, GRB.LESS_EQUAL, link_cap)
         index += 1
 
     return m, constraint_dict
@@ -218,7 +227,7 @@ def create_initial_mcf_model(problem:problem.Problem, link_cap, link_src_dst_pat
         sum_flow = 0
         for (src, dst, idx) in link_src_dst_path_dict[e]:
             sum_flow += flow[(src, dst, idx)]
-        m.addConstr(sum_flow, GRB.LESS_EQUAL, link_cap, name="capacity_" + str(index))
+        m.addConstr(sum_flow, GRB.LESS_EQUAL, link_cap)
         index += 1
     return m, t, constraint_dict, flow
 
@@ -240,6 +249,9 @@ def find_next_saturated_edge(problem:problem.Problem, frozen_flows, unfrozen_flo
     if break_down:
         check_point_model = datetime.now()
 
+    # model.setParam(GRB.param.OutputFlag, 1)
+    # model.setParam(GRB.param.Method, 2)
+    # model.write("m1.lp")
     model.optimize()
 
     if break_down:
