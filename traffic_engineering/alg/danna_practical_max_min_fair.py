@@ -7,8 +7,22 @@ from gurobi import *
 from utilities import constants
 from ncflow.lib import problem
 
+MODEL_TIME = 'model'
+FEASIBILITY_TOTAL = 'feasibility_total'
+FEASIBILITY_SOLVER = 'feasibility_solver'
+MCF_TOTAL = 'mcf_total'
+MCF_SOLVER = 'mcf_solver'
+EXTRACT_RATE = 'extract_rate'
 
-def get_rates(U, problem:problem.Problem, paths, link_cap, break_down=False):
+
+def get_rates(U, problem:problem.Problem, paths, link_cap, feasibility_grb_method=1, mcf_grb_method=2, break_down=False):
+    run_time_dict = dict()
+    run_time_dict[MODEL_TIME] = 0
+    run_time_dict[FEASIBILITY_TOTAL] = 0
+    run_time_dict[FEASIBILITY_SOLVER] = 0
+    run_time_dict[MCF_TOTAL] = 0
+    run_time_dict[MCF_SOLVER] = 0
+    run_time_dict[EXTRACT_RATE] = 0
     st_time = datetime.now()
     max_demand = 0
     min_demand = np.inf
@@ -46,8 +60,8 @@ def get_rates(U, problem:problem.Problem, paths, link_cap, break_down=False):
     sorted_list_unique_demands = sorted(list(set(list_demands)))
     prev_id_feas = 0
     iter_no = 0
-    feas_model, feas_constraint_dict = create_initial_feasibility_model(problem, link_cap, link_src_dst_path_dict, list_possible_paths)
-    mcf_model, mcf_thru_var, mcf_constraint_dict, flow_var = create_initial_mcf_model(problem, link_cap, link_src_dst_path_dict, list_possible_paths)
+    feas_model, feas_constraint_dict = create_initial_feasibility_model(problem, link_cap, link_src_dst_path_dict, list_possible_paths, feasibility_grb_method)
+    mcf_model, mcf_thru_var, mcf_constraint_dict, flow_var = create_initial_mcf_model(problem, link_cap, link_src_dst_path_dict, list_possible_paths, mcf_grb_method)
 
     if break_down:
         pre_dur = (datetime.now() - st_time).total_seconds()
@@ -57,14 +71,14 @@ def get_rates(U, problem:problem.Problem, paths, link_cap, break_down=False):
         create_model_freeze_link_dur = 0
         solve_optimization_freeze_link_dur = 0
         retrieve_values_freeze_link_dur = 0
+    run_time_dict[MODEL_TIME] = (datetime.now() - st_time).total_seconds()
 
     last_model = feas_model
     while len(frozen_flows) < num_flows:
-        # if iter_no == 49:
-        #     print("found")
         print(f"iter no. {iter_no}, num remaining flows {len(unfrozen_flows)}, total flows {num_flows}")
         prev_id_feas = binary_search_saturated_demands(problem, frozen_flows, unfrozen_flows, feas_model, feas_constraint_dict,
-                                                       prev_id_feas, sorted_list_unique_demands, break_down=break_down)
+                                                       prev_id_feas, sorted_list_unique_demands, run_time_dict,
+                                                       break_down=break_down)
         last_model = feas_model
 
         if break_down:
@@ -77,7 +91,7 @@ def get_rates(U, problem:problem.Problem, paths, link_cap, break_down=False):
             break
         output = find_next_saturated_edge(problem, frozen_flows, unfrozen_flows, mcf_model, mcf_thru_var,
                                           mcf_constraint_dict, link_src_dst_path_dict, flow_var, link_cap,
-                                          debug=False, break_down=break_down)
+                                          run_time_dict, debug=False, break_down=break_down)
         last_model = mcf_model
         if break_down:
             time_model, time_optimize, time_retrieve = output
@@ -86,10 +100,12 @@ def get_rates(U, problem:problem.Problem, paths, link_cap, break_down=False):
             retrieve_values_freeze_link_dur += time_retrieve
         iter_no += 1
 
+    st_time = datetime.now()
     flow_vars = last_model.getAttr('x', flow_var)
     for (i, j, pidx), rate in flow_vars.items():
         if (i, j) in frozen_flows:
             flow_id_to_flow_rate_mapping[i, j][pidx] = rate
+    run_time_dict[EXTRACT_RATE] = (datetime.now() - st_time).total_seconds()
 
     if break_down:
         dur = (pre_dur, exponential_search_dur, binary_search_dur, freeze_demand_limited_dur,
@@ -97,14 +113,16 @@ def get_rates(U, problem:problem.Problem, paths, link_cap, break_down=False):
     else:
         dur = (datetime.now() - st_time).total_seconds()
     print("danna practical max min fair dur: ", dur)
-    return frozen_flows, flow_id_to_flow_rate_mapping, dur
+    print("danna run_time_dict max min fair measurement", run_time_dict)
+    return frozen_flows, flow_id_to_flow_rate_mapping, dur, run_time_dict
 
 
 def binary_search_saturated_demands(problem:problem.Problem, frozen_flows, unfrozen_flows, model, constraint_dict,
-                                    prev_id_feas, sorted_list_unique_demands, break_down=False):
+                                    prev_id_feas, sorted_list_unique_demands, run_time_dict, break_down=False):
 
     if break_down:
         checkpoint1 = datetime.now()
+    st_time = datetime.now()
 
     id_feasible = prev_id_feas
     post_exp_search_id_feas = prev_id_feas
@@ -114,7 +132,8 @@ def binary_search_saturated_demands(problem:problem.Problem, frozen_flows, unfro
     while not found_infeasible:
         id_infeasible = np.minimum(id_feasible + diff, len_unique_demands - 1)
         throughput_lb = sorted_list_unique_demands[id_infeasible]
-        found_feasible = perform_feasibility_test(problem, throughput_lb, frozen_flows, model, constraint_dict)
+        found_feasible = perform_feasibility_test(problem, throughput_lb, frozen_flows, model, constraint_dict,
+                                                  run_time_dict)
         if found_feasible:
             post_exp_search_id_feas = id_infeasible
         found_infeasible = not found_feasible
@@ -139,7 +158,8 @@ def binary_search_saturated_demands(problem:problem.Problem, frozen_flows, unfro
     id_current = int(np.ceil((id_feasible + id_infeasible) / 2))
     while id_infeasible - id_feasible > 1:
         t_current = sorted_list_unique_demands[id_current]
-        feasible = perform_feasibility_test(problem, t_current, frozen_flows, model, constraint_dict)
+        feasible = perform_feasibility_test(problem, t_current, frozen_flows, model, constraint_dict,
+                                            run_time_dict)
         if feasible:
             id_feasible = id_current
         else:
@@ -159,6 +179,8 @@ def binary_search_saturated_demands(problem:problem.Problem, frozen_flows, unfro
     for (src, dst) in set_to_remove:
         del unfrozen_flows[src, dst]
 
+    run_time_dict[FEASIBILITY_TOTAL] += (datetime.now() - st_time).total_seconds()
+
     if break_down:
         checkpoint4 = datetime.now()
         exponential_search_dur = (checkpoint2 - checkpoint1).total_seconds()
@@ -168,10 +190,11 @@ def binary_search_saturated_demands(problem:problem.Problem, frozen_flows, unfro
     return id_feasible
 
 
-def create_initial_feasibility_model(problem:problem.Problem, link_cap, link_src_dst_path_dict, list_possible_paths):
+def create_initial_feasibility_model(problem:problem.Problem, link_cap, link_src_dst_path_dict, list_possible_paths,
+                                     feasibility_grb_method):
     m = Model()
     m.setParam(GRB.param.OutputFlag, 0)
-    # m.setParam(GRB.param.Method, 2) # method 2 does not necessarily win and concurrent method is much faster
+    m.setParam(GRB.param.Method, feasibility_grb_method)
     flow = m.addVars(list_possible_paths, lb=0, name="flow")
 
     constraint_dict = dict()
@@ -191,7 +214,8 @@ def create_initial_feasibility_model(problem:problem.Problem, link_cap, link_src
     return m, constraint_dict
 
 
-def perform_feasibility_test(problem:problem.Problem, throughput_lb, frozen_flows, model, constraint_dict):
+def perform_feasibility_test(problem:problem.Problem, throughput_lb, frozen_flows, model, constraint_dict,
+                             run_time_dict):
 
     for _, (i, j, demand) in problem.sparse_commodity_list:
         c_lb, c_ub = constraint_dict[i, j]
@@ -201,16 +225,17 @@ def perform_feasibility_test(problem:problem.Problem, throughput_lb, frozen_flow
             c_lb.rhs = frozen_flows[i, j]
 
     model.optimize()
+    run_time_dict[FEASIBILITY_SOLVER] += model.Runtime
 
     if model.Status != GRB.OPTIMAL:
         return False
     return True
 
 
-def create_initial_mcf_model(problem:problem.Problem, link_cap, link_src_dst_path_dict, list_possible_paths):
+def create_initial_mcf_model(problem:problem.Problem, link_cap, link_src_dst_path_dict, list_possible_paths, mcf_grb_method):
     m = Model()
     m.setParam(GRB.param.OutputFlag, 0)
-    # m.setParam(GRB.param.Method, 2) # method 2 does not necessarily win and concurrent method is much faster
+    m.setParam(GRB.param.Method, mcf_grb_method)
     flow = m.addVars(list_possible_paths, lb=0, name="flow")
 
     t = m.addVar(lb=0, name="throughput")
@@ -233,9 +258,11 @@ def create_initial_mcf_model(problem:problem.Problem, link_cap, link_src_dst_pat
 
 
 def find_next_saturated_edge(problem:problem.Problem, frozen_flows, unfrozen_flows, model, throughput_var,
-                             constraint_dict, link_src_dst_path_dict, flow_var, link_cap, break_down=False, debug=False):
+                             constraint_dict, link_src_dst_path_dict, flow_var, link_cap,
+                             run_time_dict, break_down=False, debug=False):
     if break_down:
         st_time_model = datetime.now()
+    st_time = datetime.now()
 
     unfrozen_constraint_list = []
     for _, (i, j, demand) in problem.sparse_commodity_list:
@@ -249,10 +276,8 @@ def find_next_saturated_edge(problem:problem.Problem, frozen_flows, unfrozen_flo
     if break_down:
         check_point_model = datetime.now()
 
-    # model.setParam(GRB.param.OutputFlag, 1)
-    # model.setParam(GRB.param.Method, 2)
-    # model.write("m1.lp")
     model.optimize()
+    run_time_dict[MCF_SOLVER] += model.Runtime
 
     if break_down:
         check_point_optimize = datetime.now()
@@ -281,6 +306,7 @@ def find_next_saturated_edge(problem:problem.Problem, frozen_flows, unfrozen_flo
                 print(f"capacity violation: {e} {link_util[e]}/{link_cap}")
                 raise Exception("capacity violated")
 
+    run_time_dict[MCF_TOTAL] += (datetime.now() - st_time).total_seconds()
     if break_down:
         check_point_retrieve = datetime.now()
         time_model = (check_point_model - st_time_model).total_seconds()

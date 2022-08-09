@@ -47,6 +47,8 @@ TOPO_NAME_LIST = [
 
 # TM_MODEL_LIST = ['gravity']
 # TOPO_NAME_LIST = ['UsCarrier.graphml', 'Colt.graphml']
+feasibility_grb_method = 1
+mcf_grb_method = 2
 num_path_list = [16]
 # num_path_list = [4]
 link_cap = 1000.0
@@ -77,17 +79,24 @@ for num_paths in num_path_list:
                 utils.revise_list_commodities(problem)
                 per_flow_log_file_name = file_name[4].split("/")[-1][:-4] + f"_num_paths_{num_paths}"
                 print("=" * 5, file_name, per_flow_log_file_name, "=" * 5)
-                danna_fid_to_total_rate, danna_fid_to_per_path_rate, danna_dur = danna_practical_max_min_fair.get_rates(U, problem, paths, link_cap, break_down=False)
+                danna_output = danna_practical_max_min_fair.get_rates(U, problem, paths, link_cap,
+                                                                      feasibility_grb_method=feasibility_grb_method,
+                                                                      mcf_grb_method=mcf_grb_method,
+                                                                      break_down=False)
+                danna_fid_to_total_rate, danna_fid_to_per_path_rate, danna_dur, danna_run_time_dict = danna_output
 
                 danna_total_flow = 0
                 for (src, dst) in danna_fid_to_total_rate:
                     danna_total_flow += danna_fid_to_total_rate[src, dst]
 
-                per_flow_log_file_path = log_folder_flows + "/" + per_flow_log_file_name + "_total_flow.pickle"
-                utils.write_to_file_as_pickle(danna_fid_to_total_rate, log_folder_flows, per_flow_log_file_path)
+                total_flow_log_file_path = log_folder_flows + "/" + per_flow_log_file_name + "_total_flow.pickle"
+                utils.write_to_file_as_pickle(danna_fid_to_total_rate, log_folder_flows, total_flow_log_file_path)
 
                 per_flow_log_file_path = log_folder_flows + "/" + per_flow_log_file_name + "_per_path_flow.pickle"
                 utils.write_to_file_as_pickle(danna_fid_to_per_path_rate, log_folder_flows, per_flow_log_file_path)
+
+                run_time_dict_file_path = log_folder_flows + "/" + per_flow_log_file_name + "_run_time_dict.pickle"
+                utils.write_to_file_as_pickle(danna_run_time_dict, log_folder_flows, run_time_dict_file_path)
 
                 log_txt = f"{file_name},{num_paths},{danna_total_flow},{danna_dur},{per_flow_log_file_name}\n"
                 utils.write_to_file(log_txt, log_dir, log_file)
