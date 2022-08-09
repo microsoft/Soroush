@@ -44,14 +44,16 @@ num_scenario_per_topo_traffic = 2
 for num_paths in num_path_list:
     for topo_name in TOPO_NAME_LIST:
         for tm_model in TM_MODEL_LIST:
-            fnames = np.random.choice(utils.find_topo_tm_fname(topo_name, tm_model), num_scenario_per_topo_traffic)
+            fnames = utils.find_topo_tm_fname(topo_name, tm_model)
+            fnames_idx = np.random.choice(len(fnames), num_scenario_per_topo_traffic)
             example_file = fnames[0]
             problem = Problem.from_file(example_file[3], example_file[4])
             path_output = shortest_paths.all_pair_shortest_path_multi_processor(problem.G, problem.edge_idx,
                                                                                 k=num_paths, number_processors=32)
             paths, path_edge_idx_mapping, _, _, _ = path_output
 
-            for file_name in fnames:
+            for selected_fidx in fnames_idx:
+                file_name = fnames[selected_fidx]
                 for feasibility_method in feasibility_grb_method:
                     for mcf_method in mcf_grb_method:
                         problem = Problem.from_file(file_name[3], file_name[4])
