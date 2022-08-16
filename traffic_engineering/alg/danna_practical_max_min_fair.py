@@ -73,7 +73,7 @@ def get_rates(U, problem:problem.Problem, paths, link_cap, feasibility_grb_metho
         retrieve_values_freeze_link_dur = 0
     run_time_dict[MODEL_TIME] = (datetime.now() - st_time).total_seconds()
 
-    last_model = feas_model
+    last_model = None
     while len(frozen_flows) < num_flows:
         print(f"iter no. {iter_no}, num remaining flows {len(unfrozen_flows)}, total flows {num_flows}")
         prev_id_feas = binary_search_saturated_demands(problem, frozen_flows, unfrozen_flows, feas_model, feas_constraint_dict,
@@ -100,12 +100,19 @@ def get_rates(U, problem:problem.Problem, paths, link_cap, feasibility_grb_metho
             retrieve_values_freeze_link_dur += time_retrieve
         iter_no += 1
 
-    st_time = datetime.now()
-    flow_vars = last_model.getAttr('x', flow_var)
-    for (i, j, pidx), rate in flow_vars.items():
-        if (i, j) in frozen_flows:
-            flow_id_to_flow_rate_mapping[i, j][pidx] = rate
-    run_time_dict[EXTRACT_RATE] = (datetime.now() - st_time).total_seconds()
+    ex_st_time = datetime.now()
+    if last_model is None:
+        for (i, j), rate in frozen_flows.items():
+            num_paths = len(flow_id_to_flow_rate_mapping[i, j])
+            uniform_rate = rate / num_paths
+            for idx in range(num_paths):
+                flow_id_to_flow_rate_mapping[i, j][idx] = uniform_rate
+    else:
+        flow_vars = last_model.getAttr('x', flow_var)
+        for (i, j, pidx), rate in flow_vars.items():
+            if (i, j) in frozen_flows:
+                flow_id_to_flow_rate_mapping[i, j][pidx] = rate
+    run_time_dict[EXTRACT_RATE] = (datetime.now() - ex_st_time).total_seconds()
 
     if break_down:
         dur = (pre_dur, exponential_search_dur, binary_search_dur, freeze_demand_limited_dur,
@@ -147,6 +154,7 @@ def binary_search_saturated_demands(problem:problem.Problem, frozen_flows, unfro
         for (src, dst) in unfrozen_flows:
             frozen_flows[src, dst] = unfrozen_flows[src, dst]
         unfrozen_flows.clear()
+        run_time_dict[FEASIBILITY_TOTAL] += (datetime.now() - st_time).total_seconds()
         if break_down:
             time_dur = (datetime.now() - checkpoint1).total_seconds()
             return len_unique_demands, time_dur, 0, 0

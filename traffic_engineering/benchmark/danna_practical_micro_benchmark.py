@@ -74,6 +74,6 @@ for num_paths in num_path_list:
                         utils.write_to_file(log_txt, log_dir, log_file)
                         print("result:", log_txt)
                         for key, time_s in danna_run_time_dict.items():
-                            log_txt = f"    {key}: {time_s} s"
+                            log_txt = f"    {key}: {time_s} s\n"
                             utils.write_to_file(log_txt, log_dir, log_file)
                             print("      ", log_txt)
