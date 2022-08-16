@@ -15,7 +15,7 @@ TM_MODEL_LIST = [
     'bimodal',
     'gravity',
     'poisson-high-inter',
-    'poisson-high-inter',
+    'poisson-high-intra',
 ]
 TOPO_NAME_LIST = [
     'Uninett2010.graphml',

@@ -33,7 +33,7 @@ TM_MODEL_LIST = [
     'bimodal',
     'gravity',
     'poisson-high-inter',
-    'poisson-high-inter',
+    'poisson-high-intra',
 ]
 TOPO_NAME_LIST = [
     'Uninett2010.graphml',
@@ -42,13 +42,13 @@ TOPO_NAME_LIST = [
     'UsCarrier.graphml',
     'Colt.graphml',
     'TataNld.graphml',
-    'Kdl.graphml',
+    # 'Kdl.graphml',
 ]
 
 # TM_MODEL_LIST = ['gravity']
 # TOPO_NAME_LIST = ['UsCarrier.graphml', 'Colt.graphml']
 feasibility_grb_method = 1
-mcf_grb_method = 2
+mcf_grb_method = 1
 num_path_list = [16]
 # num_path_list = [4]
 link_cap = 1000.0
@@ -56,7 +56,7 @@ log_dir = "../outputs"
 fid = utils.get_fid()
 log_file = f"../outputs/danna_practical_{fid}.txt"
 log_folder_flows = f"../outputs/danna_practical_{fid}/"
-U = 0.1
+U = 0
 skip_until = -1
 curr = 1
 
