@@ -7,8 +7,18 @@ from gurobi import *
 from utilities import constants
 from ncflow.lib import problem
 
+MODEL_TIME = 'model'
+MCF_TOTAL = 'mcf_total'
+MCF_SOLVER = 'mcf_solver'
+FREEZE_TIME = 'freeze_time'
 
-def max_min_approx(alpha, U, problem:problem.Problem, paths, link_cap, break_down=False):
+
+def max_min_approx(alpha, U, problem:problem.Problem, paths, link_cap, mcf_grb_method=2, break_down=False):
+    run_time_dict = dict()
+    run_time_dict[MODEL_TIME] = 0
+    run_time_dict[MCF_TOTAL] = 0
+    run_time_dict[MCF_SOLVER] = 0
+    run_time_dict[FREEZE_TIME] = 0
     st_time = datetime.now()
     max_demand = 0
     min_demand = np.inf
@@ -33,13 +43,14 @@ def max_min_approx(alpha, U, problem:problem.Problem, paths, link_cap, break_dow
                     link_src_dst_path_dict[path[i - 1], path[i]] = list()
                 link_src_dst_path_dict[path[i - 1], path[i]].append((src, dst, index))
             index += 1
-        if demand < U:
-            frozen_flows[src, dst] = demand
+        # if demand < U:
+        #     frozen_flows[src, dst] = demand
 
     # U = min(min_demand, U)
+    U = max(U, link_cap / len(problem.sparse_commodity_list))
     T = max(1, int(np.ceil(np.log(max_demand / U) / np.log(alpha))))
     model, flow_vars, constraint_dict = create_initial_mcf_model(problem, link_cap, link_src_dst_path_dict,
-                                                                 list_possible_paths, frozen_flows)
+                                                                 list_possible_paths, frozen_flows, mcf_grb_method)
 
     if break_down:
         checkpoint_1_time = datetime.now()
@@ -47,15 +58,20 @@ def max_min_approx(alpha, U, problem:problem.Problem, paths, link_cap, break_dow
         time_create_model = 0
         time_solve_optimization = 0
         time_retrieve_values = 0
+    run_time_dict[MODEL_TIME] = (datetime.now() - st_time).total_seconds()
 
-    for k in range(T):
-        lb = np.power(alpha, k) * U
-        ub = np.power(alpha, k+1) * U
+    for k in range(T + 1):
+        if k == 0:
+            lb = 0
+            ub = U
+        else:
+            lb = np.power(alpha, k - 1) * U
+            ub = np.power(alpha, k) * U
         print(f"swan iteration {k}: time {(datetime.now() - st_time).total_seconds()} num frozen flows {len(frozen_flows)} "
               f"lb {lb} ub {ub}")
 
         output = compute_throughput_path_based_given_tm(problem, lb, ub, frozen_flows, model, constraint_dict, flow_vars,
-                                                        break_down=break_down)
+                                                        run_time_dict, break_down=break_down)
 
         if break_down:
             flow_rate_mapping, t_m, t_o, t_r = output
@@ -65,8 +81,7 @@ def max_min_approx(alpha, U, problem:problem.Problem, paths, link_cap, break_dow
         else:
             flow_rate_mapping = output
 
-        if break_down:
-            st_time_freeze = datetime.now()
+        st_time_freeze = datetime.now()
         for (src, dst) in flow_rate_mapping:
             if (src, dst) not in frozen_flows:
                 total_rate = sum(flow_rate_mapping[src, dst])
@@ -77,6 +92,7 @@ def max_min_approx(alpha, U, problem:problem.Problem, paths, link_cap, break_dow
                     flow_id_to_rate_mapping[src, dst] = flow_rate_mapping[src, dst]
             else:
                 flow_id_to_rate_mapping[src, dst] = flow_rate_mapping[src, dst]
+        run_time_dict[FREEZE_TIME] += (datetime.now() - st_time_freeze).total_seconds()
         if break_down:
             time_freeze += (datetime.now() - st_time_freeze).total_seconds()
 
@@ -85,7 +101,8 @@ def max_min_approx(alpha, U, problem:problem.Problem, paths, link_cap, break_dow
     else:
         dur = (datetime.now() - st_time).total_seconds()
     print(f"swan total time: {dur}")
-    return flow_id_to_rate_mapping, dur
+    print("swan run_time_dict max min fair measurement", run_time_dict)
+    return flow_id_to_rate_mapping, dur, run_time_dict
 
 
 def modify_model(model, src, dst, rate, flow_vars, constraint_dict):
@@ -95,10 +112,11 @@ def modify_model(model, src, dst, rate, flow_vars, constraint_dict):
     model.addConstr(flow_vars.sum(src, dst, '*') == rate)
 
 
-def create_initial_mcf_model(problem:problem.Problem, link_cap, link_src_dst_path_dict, list_possible_paths, frozen_flows):
+def create_initial_mcf_model(problem:problem.Problem, link_cap, link_src_dst_path_dict, list_possible_paths,
+                             frozen_flows, mcf_grb_method):
     m = Model()
     m.setParam(GRB.param.OutputFlag, 0)
-    m.setParam(GRB.param.Method, 2)
+    m.setParam(GRB.param.Method, mcf_grb_method)
 
     flow = m.addVars(list_possible_paths, lb=0, name="flow")
 
@@ -125,9 +143,10 @@ def create_initial_mcf_model(problem:problem.Problem, link_cap, link_src_dst_pat
 
 
 def compute_throughput_path_based_given_tm(problem:problem.Problem, throughput_lb, throughput_ub, frozen_flows,
-                                           model, constraint_dict, flow_vars, break_down=False):
+                                           model, constraint_dict, flow_vars, run_time_dict, break_down=False):
     if break_down:
         st_time_model = datetime.now()
+    st_time = datetime.now()
 
     for _, (i, j, demand) in problem.sparse_commodity_list:
         if (i, j) not in frozen_flows:
@@ -140,6 +159,7 @@ def compute_throughput_path_based_given_tm(problem:problem.Problem, throughput_l
 
     # model.reset()
     model.optimize()
+    run_time_dict[MCF_SOLVER] += model.Runtime
 
     if break_down:
         check_point_optimize = datetime.now()
@@ -154,6 +174,7 @@ def compute_throughput_path_based_given_tm(problem:problem.Problem, throughput_l
     for (i, j, _), rate in flow_vars.items():
         flow_id_to_flow_rate_mapping[i, j].append(rate)
 
+    run_time_dict[MCF_TOTAL] += (datetime.now() - st_time).total_seconds()
     if break_down:
         check_point_retrieve = datetime.now()
         time_model = (check_point_model - st_time_model).total_seconds()
