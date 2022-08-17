@@ -35,7 +35,7 @@ TOPO_NAME_LIST = [
 ]
 
 # num_path_list = [4, 16]
-mcf_grb_method = 1
+mcf_grb_method = 2
 num_path_list = [16]
 # num_path_list = [4]
 link_cap = 1000.0
