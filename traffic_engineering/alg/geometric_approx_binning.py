@@ -48,7 +48,7 @@ def max_min_approx(alpha, U, problem:problem.Problem, paths, link_cap, max_epsil
 
         list_flows.append((src, dst, 0))
         for k in range(T):
-            if U * np.power(alpha, k) > demand:
+            if bounds[k] > demand:
                 break
             list_flows.append((src, dst, k + 1))
 
@@ -99,7 +99,7 @@ def max_min_approx(alpha, U, problem:problem.Problem, paths, link_cap, max_epsil
     flow_id_to_flow_rate_mapping = defaultdict(list)
     for (src, dst, _), rate in flow_vars.items():
         flow_id_to_flow_rate_mapping[(src, dst)].append(rate * link_cap_scale_multiplier)
-    run_time_dict[EXTRACT_RATE] = (extract_st_time - datetime.now()).total_seconds()
+    run_time_dict[EXTRACT_RATE] = (datetime.now() - extract_st_time).total_seconds()
 
     if break_down:
         check_point_retrieve = datetime.now()
