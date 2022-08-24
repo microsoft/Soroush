@@ -48,7 +48,7 @@ log_folder_flows = f"../outputs/geometric_binner_{fid}/"
 alpha = 2
 U = 0.1
 max_epsilon = 1e-6
-link_cap_multiplier = 1000.0
+link_cap_multiplier = 1
 
 only_consider = None
 skip_less_than = -1
