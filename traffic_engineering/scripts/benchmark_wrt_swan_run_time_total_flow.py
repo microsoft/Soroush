@@ -25,20 +25,64 @@ approach_to_log_dir_mapping = {
     # constants.APPROX_BET_MCF_BIASED: [("../outputs/approx_bet_biased_mcf_2022_04_28_22_05_41_992b96ba", 1)],
     # constants.APPROX_BET_MCF: [("../outputs/approx_bet_mcf_2022_04_10_12_49_24_b64bd9fb", 1)],
     # constants.APPROX_BET_MCF: [("../outputs/approx_bet_mcf_2022_05_15_16_13_34_987c39c9", 1)],
-    constants.APPROX_BET_MCF: [("../outputs/approx(1)_bet(10)_mcf_2022_05_16_04_20_06_14cf9ecc", 1)],
-    constants.DANNA: [("../outputs/danna_practical_2022_04_05_11_21_52_5a365c0f", 0),
-                      ("../outputs/danna_practical_2022_04_08_02_34_55_ed6031ff", 0)],
-    constants.SWAN: [("../outputs/swan_2022_04_07_10_22_17_d9a42dd7", 0),
-                     ("../outputs/swan_2022_04_08_13_50_46_6bdfa84d", 0),
-                     ("../outputs/swan_2022_04_09_23_17_04_1af420da", 0)],
+    # constants.NEW_APPROX: [("../outputs/new_approx_2022_07_10_12_18_18_09a71814", 0)],
+    # constants.APPROX_BET_MCF: [("../outputs/approx(1)_bet(10)_mcf_2022_05_16_04_20_06_14cf9ecc", 1),
+    #                            ("../outputs/approx(1)_bet(10)_mcf_2022_05_22_23_36_38_ecf2c718", 1)],
+    # constants.DANNA: [("../outputs/danna_practical_2022_04_05_11_21_52_5a365c0f", 0),
+    #                   ("../outputs/danna_practical_2022_04_08_02_34_55_ed6031ff", 0),
+    #                   ("../outputs/danna_practical_2022_05_17_10_02_17_b535e7d3", 0),
+    #                   ("../outputs/danna_practical_2022_05_20_20_22_39_63efe481", 0),
+    #                   ("../outputs/danna_practical_2022_05_21_18_46_44_911d1fa3", 0),
+    #                   ("../outputs/danna_practical_2022_05_22_09_17_34_b0c9cdeb", 0)],
+    # constants.SWAN: [("../outputs/swan_2022_04_07_10_22_17_d9a42dd7", 0),
+    #                  ("../outputs/swan_2022_04_08_13_50_46_6bdfa84d", 0),
+    #                  ("../outputs/swan_2022_04_09_23_17_04_1af420da", 0),
+    #                  ("../outputs/swan_2022_05_21_08_57_09_81eae09f", 0)],
+    constants.NEW_APPROX: [("../outputs/geometric_binner_2022_08_25_06_02_02_72f6231f", 0)],
+    constants.DANNA: [("../outputs/danna_practical_2022_08_16_17_13_19_dc44cf7e", 0),
+                      ("../outputs/danna_practical_2022_08_16_22_22_21_6afe1d48", 0)],
+    constants.SWAN: [("../outputs/swan_2022_08_23_07_06_01_47c2318f", 0)],
+    constants.ONE_WATERFILLING: [("../outputs/one_water_filling_2022_08_26_03_45_36_08443d49", 0)]
     # constants.ONE_WATERFILLING: [("../outputs/one_water_2022_04_08_00_28_28_45cc389d", 0),
     #                              ("../outputs/one_water_2022_04_08_15_37_42_4d1f63ed", 0)]
+}
+
+approach_to_valid_for_run_time = {
+    constants.ONE_WATERFILLING: [
+        # "model",
+        "computation",
+        # "extract_rate",
+    ],
+    constants.APPROX: [
+        # "model",
+        "computation",
+        # "extract_rate",
+    ],
+    constants.DANNA: [
+        # "model",
+        "feasibility_total",
+        # "feasibility_solver",
+        "mcf_total",
+        # "mcf_solver",
+        # 'extract_rate',
+    ],
+    constants.SWAN: [
+        # 'model',
+        'mcf_total',
+        # 'mcf_solver',
+        # 'freeze_time'
+    ],
+    constants.NEW_APPROX: [
+        # 'model',
+        # 'extract_rate',
+        'mcf_solver',
+    ]
 }
 
 fig_dir = "../figs/"
 utils.ensure_dir(fig_dir)
 
-total_flow_baseline = constants.SWAN
+total_flow_baseline = constants.DANNA
 assert total_flow_baseline in approach_to_log_dir_mapping
 fairness_baseline = constants.DANNA
 assert fairness_baseline in approach_to_log_dir_mapping
@@ -47,9 +91,29 @@ assert run_time_baseline in approach_to_log_dir_mapping
 
 theta_fairness = 0.1
 
-TM_MODEL_LIST = ['bimodal', 'gravity']
-# TOPO_NAME_LIST = ['Uninett2010.graphml', 'GtsCe.graphml', 'Cogentco.graphml']
-TOPO_NAME_LIST = ['GtsCe.graphml', 'Cogentco.graphml']
+TM_MODEL_LIST = [
+    'uniform',
+    'bimodal',
+    'gravity',
+    'poisson-high-inter',
+    # 'poisson-high-intra',
+]
+TOPO_NAME_LIST = [
+    'Uninett2010.graphml',
+    'Cogentco.graphml',
+    'GtsCe.graphml',
+    'UsCarrier.graphml',
+    'Colt.graphml',
+    'TataNld.graphml',
+    # 'Kdl.graphml',
+]
+
+TOPO_TM_MODEL_COMB = []
+for tm_model in TM_MODEL_LIST:
+    for topo_model in TOPO_NAME_LIST:
+        TOPO_TM_MODEL_COMB.append((tm_model, topo_model))
+
+
 NUM_PATH_LIST = [16]
 TOPO_EDGE_NUM = [202, 386, 486]
 topo_to_num_edges = {'Uninett2010.graphml': 202,
@@ -59,13 +123,14 @@ topo_to_num_edges = {'Uninett2010.graphml': 202,
 default_marker_size = 1.5
 default_line_width = 2
 approach_plot = {constants.APPROX: ('#1f77b4', None, ':', default_marker_size, default_line_width),
-                 constants.APPROX_MCF:  ('#ff7f0e', None, ':', default_marker_size, default_line_width),
+                 # constants.APPROX_MCF:  ('#ff7f0e', None, ':', default_marker_size, default_line_width),
                  constants.APPROX_BET: ('#2ca02c', None, ':', default_marker_size, default_line_width),
                  constants.APPROX_BET_MCF: ('#d62728', None, "--", 3, 2),
                  constants.APPROX_BET_MCF_BIASED: ('#1a55FF', None, "--", 3, 2),
                  constants.DANNA: ('#9467bd', None, "-.", 2.5, 2),
                  constants.SWAN: ('#8c564b', None, "-.", 2.5, 2),
-                 constants.ONE_WATERFILLING: ('#e377c2', None, ":", default_marker_size, default_line_width)}
+                 constants.ONE_WATERFILLING: ('#e377c2', None, ":", default_marker_size, default_line_width),
+                 constants.NEW_APPROX: ("#ff7f0e", None, "--", 3, 2)}
                   # '#7f7f7f',
                   # '#bcbd22',
                   # '#17becf',
@@ -80,10 +145,17 @@ params = {'legend.fontsize': 15,
           'legend.handlelength': 2}
 plt.rcParams.update(params)
 
+def get_output_run_time(approach_name, run_time_dict):
+    run_time = 0
+    for time_name in approach_to_valid_for_run_time[approach_name]:
+        run_time += run_time_dict[time_name]
+    return run_time
 
-def parse_line(line, dir_name, is_approx):
+
+def parse_line(line, dir_name, approach_name, is_approx):
     model_param, other_param = line.split(")")
-    flow_rate_file_name = dir_name + "/{}.pickle"
+    flow_rate_file_name = dir_name + "/{}_per_flow_rate.pickle"
+    run_time_dict_file_name = dir_name + "/{}_run_time_dict.pickle"
 
     model_param = model_param[1:]
     print(line, dir_name)
@@ -99,20 +171,26 @@ def parse_line(line, dir_name, is_approx):
             num_iter = (num_iter_approx, num_iter_bet)
         print(detailed_per_flow_file)
         fid_to_rate_mapping = utils.read_pickle_file(flow_rate_file_name.format(detailed_per_flow_file[1:-1]))
-        return traffic_file, int(num_paths), num_iter, float(total_flow), float(run_time), fid_to_rate_mapping
+        run_time_dict = utils.read_pickle_file(run_time_dict_file_name.format(detailed_per_flow_file[1:-1]))
+        output_run_time = get_output_run_time(approach_name, run_time_dict)
+        return traffic_file, int(num_paths), num_iter, float(total_flow), output_run_time, fid_to_rate_mapping
 
     num_paths, total_flow, run_time, detailed_per_flow_file = other_param.split(",")
     fid_to_rate_mapping = utils.read_pickle_file(flow_rate_file_name.format(detailed_per_flow_file[:-1]))
-    return traffic_file, int(num_paths), float(total_flow), float(run_time), fid_to_rate_mapping
+    run_time_dict = utils.read_pickle_file(run_time_dict_file_name.format(detailed_per_flow_file[:-1]))
+    output_run_time = get_output_run_time(approach_name, run_time_dict)
+    return traffic_file, int(num_paths), float(total_flow), output_run_time, fid_to_rate_mapping
 
 
-def get_total_thru_run_time_dict_approx(dir_name):
+def get_total_thru_run_time_dict_approx(approach_name, dir_name):
     total_thru_dict = defaultdict(lambda: defaultdict(dict))
     run_time_dict = defaultdict(lambda: defaultdict(dict))
     fid_to_flow_rate_mapping_dict = defaultdict(lambda: defaultdict(dict))
     with open(dir_name + ".txt", "r") as fp:
         for l in fp.readlines():
-            traffic_file, num_paths, num_iter, total_flow, run_time, fid_to_rate_mapping = parse_line(l, dir_name, is_approx=True)
+            traffic_file, num_paths, num_iter, total_flow, run_time, fid_to_rate_mapping = parse_line(l, dir_name,
+                                                                                                      approach_name,
+                                                                                                      is_approx=True)
             if not is_topo_traffic_valid(traffic_file):
                 print(f"skipping ${traffic_file}$ either topo or traffic not valid!!")
                 continue
@@ -122,13 +200,15 @@ def get_total_thru_run_time_dict_approx(dir_name):
     return total_thru_dict, run_time_dict, fid_to_flow_rate_mapping_dict
 
 
-def get_total_thru_run_time_dict(dir_name):
+def get_total_thru_run_time_dict(approach_name, dir_name):
     total_thru_dict = defaultdict(dict)
     run_time_dict = defaultdict(dict)
     fid_to_flow_rate_mapping_dict = defaultdict(dict)
     with open(dir_name + ".txt", "r") as fp:
         for l in fp.readlines():
-            traffic_file, num_paths, total_flow, run_time, fid_to_rate_mapping = parse_line(l, dir_name, is_approx=False)
+            traffic_file, num_paths, total_flow, run_time, fid_to_rate_mapping = parse_line(l, dir_name,
+                                                                                            approach_name,
+                                                                                            is_approx=False)
             if not is_topo_traffic_valid(traffic_file):
                 print(f"skipping either topo or traffic not valid!!")
                 continue
@@ -155,19 +235,23 @@ def compute_fairness_no(baseline_mapping, approach_mapping, theta_fairness):
 
 
 def is_topo_traffic_valid(fname):
-    topo_valid = False
-    for topo in TOPO_NAME_LIST:
-        if topo in fname:
-            topo_valid = True
-            break
-
-    traffic_valid = False
-    for traffic_model in TM_MODEL_LIST:
-        if traffic_model in fname:
-            traffic_valid = True
-            break
-
-    return traffic_valid and topo_valid
+    for topo_name, tm_name in TOPO_TM_MODEL_COMB:
+        if topo_name in fname and tm_name in fname:
+            return True
+    return False
+    # topo_valid = False
+    # for topo in TOPO_NAME_LIST:
+    #     if topo in fname:
+    #         topo_valid = True
+    #         break
+    #
+    # traffic_valid = False
+    # for traffic_model in TM_MODEL_LIST:
+    #     if traffic_model in fname:
+    #         traffic_valid = True
+    #         break
+    #
+    # return traffic_valid and topo_valid
 
 
 approach_to_total_thru_mapping = defaultdict(lambda: defaultdict(dict))
@@ -176,7 +260,7 @@ approach_to_fid_to_rate_mapping = defaultdict(lambda: defaultdict(dict))
 for approach, dir_list in approach_to_log_dir_mapping.items():
     for dir, is_approx in dir_list:
         if is_approx:
-            output = get_total_thru_run_time_dict_approx(dir)
+            output = get_total_thru_run_time_dict_approx(approach, dir)
             for num_paths in output[0]:
                 for traffic_file in output[0][num_paths]:
                     for num_iter in output[0][num_paths][traffic_file]:
@@ -189,7 +273,7 @@ for approach, dir_list in approach_to_log_dir_mapping.items():
                         approach_to_run_time_mapping[approach][num_paths][traffic_file][num_iter]  = output[1][num_paths][traffic_file][num_iter]
                         approach_to_fid_to_rate_mapping[approach][num_paths][traffic_file][num_iter]  = output[2][num_paths][traffic_file][num_iter]
         else:
-            output = get_total_thru_run_time_dict(dir)
+            output = get_total_thru_run_time_dict(approach, dir)
             for num_paths in output[0]:
                 for traffic_file in output[0][num_paths]:
                     approach_to_total_thru_mapping[approach][num_paths][traffic_file] = output[0][num_paths][traffic_file]
@@ -275,7 +359,7 @@ for num_paths in NUM_PATH_LIST:
         sns.ecdfplot(approach_to_normalized_rate_mapping[approach, num_iter], label=label, color=color, marker=marker_style,
                      linestyle=line_style, linewidth=line_width, markersize=marker_size)
     plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left', borderaxespad=0., fontsize=10)
-    plt.xlabel("Total Flow, relative to SWAN")
+    plt.xlabel(f"Total Flow, relative to {total_flow_baseline}")
     plt.ylabel("Fraction of Scenarios")
     plt.title(f"{num_paths} shortest paths")
     plt.savefig(fig_dir + f"total_flow_relative_swan_{num_paths}_{utils.get_fid()}.png", bbox_inches='tight', format="png")
@@ -302,7 +386,7 @@ for num_paths in NUM_PATH_LIST:
         sns.ecdfplot(approach_to_normalized_run_time[approach, num_iter], label=label, color=color, marker=marker_style,
                      linestyle=line_style, linewidth=line_width, markersize=marker_size)
     plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left', borderaxespad=0., fontsize=10)
-    plt.xlabel("Speedup, relative to SWAN (log scale)")
+    plt.xlabel(f"Speedup, relative to {run_time_baseline} (log scale)")
     plt.ylabel("Fraction of Scenarios")
     plt.title(f"{num_paths} shortest paths")
     plt.savefig(fig_dir + f"speedup_relative_swan_{num_paths}_{utils.get_fid()}.png", bbox_inches='tight', format="png")
