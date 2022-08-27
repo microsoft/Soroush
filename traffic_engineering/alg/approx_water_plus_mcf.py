@@ -2,12 +2,15 @@ from collections import defaultdict
 from datetime import datetime
 
 import numpy as np
-import cvxpy as cp
 from gurobi import *
 
 from alg import approx_waterfilling
 from ncflow.lib import problem
 from utilities import constants
+
+MODEL_TIME = "model_equi_depth"
+SOLVER_TIME = "solver_time_equi_depth"
+EXTRACT_RATE = "extract_rate_equi_depth"
 
 
 def get_rates(problem: problem.Problem, paths, path_edge_idx_mapping, num_paths_per_flow, num_iter, link_cap, break_down=False):
@@ -171,36 +174,31 @@ def get_rates(problem: problem.Problem, paths, path_edge_idx_mapping, num_paths_
 ################### Verson 3
 def compute_throughput_path_based_given_tm(flow_details, fid_to_throughput_lb, link_cap, demand_vector,
                                            link_src_dst_path_dict, list_possible_paths, epsilon, alpha, beta, k,
-                                           num_flows_per_barrier, break_down=False, link_cap_scale_multiplier=1):
-    if break_down:
-        st_time_model = datetime.now()
+                                           num_flows_per_barrier, mcf_grb_method=2, break_down=False,
+                                           link_cap_scale_multiplier=1):
+    run_time_dict = dict()
+    run_time_dict[MODEL_TIME] = 0
+    run_time_dict[SOLVER_TIME] = 0
+    run_time_dict[EXTRACT_RATE] = 0
+
+    st_time_model = datetime.now()
 
     num_flows = len(flow_details)
     throughput_per_flow = np.add.reduce(fid_to_throughput_lb, axis=1)
     sorted_fids = np.argsort(throughput_per_flow)
-    # obj_coeff_vector = np.power(epsilon, np.arange(num_flows))
-    # multi_coeff_flows = np.empty(num_flows)
-    # multi_coeff_flows[sorted_fids] = obj_coeff_vector
     num_bins = np.int(np.ceil(num_flows / num_flows_per_barrier))
     additive_term = k * np.power(beta, np.arange(num_bins - 1, 0, -1)) / link_cap_scale_multiplier
-    # print(additive_term[:num_bins - 1])
     multi_coeff_flows = np.power(epsilon, np.arange(num_bins))
     multiplicative_term = multi_coeff_flows * (1 - alpha) + alpha
     demand_vector /= link_cap_scale_multiplier
     link_cap /= link_cap_scale_multiplier
-    # print("0", (datetime.now() - st_time_model).total_seconds())
 
     m = Model()
     m.setParam(GRB.param.OutputFlag, 0)
-    m.setParam(GRB.param.Method, 2)
-    # m.setParam(GRB.param.Crossover, 0)
-    # m.setParam(GRB.param.NumericFocus, 1)
-    # m.setParam(GRB.param.Presolve, 0)
-    # m.setParam(GRB.param.LPWarmStart, 1)
+    m.setParam(GRB.param.Method, mcf_grb_method)
     flow = m.addVars(list_possible_paths, lb=0, name="flow")
 
     obj = 0
-    # print("1", (datetime.now() - st_time_model).total_seconds())
     t_lb = m.addVars(range(num_bins - 1), lb=0, name=f"t_lb_0")
     idx = 0
     for bin_idx in range(num_bins):
@@ -221,22 +219,7 @@ def compute_throughput_path_based_given_tm(flow_details, fid_to_throughput_lb, l
         if idx >= num_flows:
             break
 
-    # print("2", (datetime.now() - st_time_model).total_seconds())
-
     m.setObjective(obj, GRB.MAXIMIZE)
-    # st_fid = sorted_fids[idx]
-    # en_fid = sorted_fids[idx + 1]
-    #
-    # st_total_flow = flow.sum(st_fid, '*')
-    # en_total_flow = flow.sum(en_fid, '*')
-    # m.addConstr(st_total_flow - en_total_flow, GRB.LESS_EQUAL, additive_term[idx])
-    # total_rate = np.sum(fid_to_throughput_lb[fid])
-    # if demand > total_rate + constants.O_epsilon:
-    #     m.addConstr(flow.sum(i, j, '*'), GRB.LESS_EQUAL, demand)
-    #     m.addConstr(flow.sum(i, j, '*'), GRB.GREATER_EQUAL, total_rate)
-    # else:
-    #     m.addConstr(flow.sum(i, j, '*') == demand)
-
     for e in link_src_dst_path_dict:
         sum_flow = quicksum(flow[key] for key in link_src_dst_path_dict[e])
         m.addConstr(sum_flow, GRB.LESS_EQUAL, link_cap, name=f"capacity_{e}")
@@ -249,10 +232,13 @@ def compute_throughput_path_based_given_tm(flow_details, fid_to_throughput_lb, l
     # for i in range(num_bins - 1):
     #     t_lb[i].PStart = init_sol_t_lb[i]
 
+    run_time_dict[MODEL_TIME] = (datetime.now() - st_time_model).total_seconds()
+
     if break_down:
         check_point_model = datetime.now()
 
     m.optimize()
+    run_time_dict[SOLVER_TIME] = m.Runtime
 
     if break_down:
         check_point_optimize = datetime.now()
@@ -261,18 +247,18 @@ def compute_throughput_path_based_given_tm(flow_details, fid_to_throughput_lb, l
     if m.Status != GRB.OPTIMAL:
         print("not converged")
 
+    extract_st_time = datetime.now()
     flow_vars = m.getAttr('x', flow)
-    # t_vars = m.getAttr('x', t_lb)
-    # print(t_vars)
     flow_id_to_flow_rate_mapping = defaultdict(list)
     for (fid, _), rate in flow_vars.items():
         flow_id_to_flow_rate_mapping[fid].append(rate * link_cap_scale_multiplier)
+    run_time_dict[EXTRACT_RATE] = (datetime.now() - extract_st_time).total_seconds()
 
     if break_down:
         check_point_retrieve = datetime.now()
         time_model = (check_point_model - st_time_model).total_seconds()
         time_optimize = (check_point_optimize - check_point_model).total_seconds()
         time_retrieve = (check_point_retrieve - check_point_optimize).total_seconds()
-        return flow_id_to_flow_rate_mapping, (time_model, time_optimize, time_retrieve)
-    return flow_id_to_flow_rate_mapping
+        return flow_id_to_flow_rate_mapping, (time_model, time_optimize, time_retrieve), run_time_dict
+    return flow_id_to_flow_rate_mapping, run_time_dict
 

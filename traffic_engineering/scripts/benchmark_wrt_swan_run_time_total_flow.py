@@ -12,6 +12,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.getcwd(), "./../")))
 
 from utilities import utils, constants
 from alg import waterfilling_utils
+from scripts import benchmark_plot_utils
 
 # approx_log_file = "../outputs/approx_2022_03_28_09_18_01_96a80821.txt"
 # # one_water_log_file = "../outputs/one_water_2022_03_28_10_13_45_a822908a.txt"
@@ -38,6 +39,8 @@ approach_to_log_dir_mapping = {
     #                  ("../outputs/swan_2022_04_08_13_50_46_6bdfa84d", 0),
     #                  ("../outputs/swan_2022_04_09_23_17_04_1af420da", 0),
     #                  ("../outputs/swan_2022_05_21_08_57_09_81eae09f", 0)],
+    constants.APPROX: [("../outputs/approx(1)_2022_08_26_08_25_54_0691655a", 1)],
+    constants.APPROX_BET: [("../outputs/approx(1)_bet_2022_08_27_01_50_46_4284934e", 1)],
     constants.NEW_APPROX: [("../outputs/geometric_binner_2022_08_25_06_02_02_72f6231f", 0)],
     constants.DANNA: [("../outputs/danna_practical_2022_08_16_17_13_19_dc44cf7e", 0),
                       ("../outputs/danna_practical_2022_08_16_22_22_21_6afe1d48", 0)],
@@ -76,7 +79,12 @@ approach_to_valid_for_run_time = {
         # 'model',
         # 'extract_rate',
         'mcf_solver',
-    ]
+    ],
+    constants.APPROX_BET: [
+        # "model",
+        "computation",
+        # "extract_rate",
+    ],
 }
 
 fig_dir = "../figs/"
@@ -137,6 +145,7 @@ approach_plot = {constants.APPROX: ('#1f77b4', None, ':', default_marker_size, d
                   # '#1a55FF'}
 
 for approach in approach_to_log_dir_mapping:
+    # print(approach, approach_plot)
     assert approach in approach_plot
 # plt.rcParams['axes.prop_cycle'] = cycler(color=colors)
 plt.rcParams['font.size'] = 18
@@ -145,148 +154,24 @@ params = {'legend.fontsize': 15,
           'legend.handlelength': 2}
 plt.rcParams.update(params)
 
-def get_output_run_time(approach_name, run_time_dict):
-    run_time = 0
-    for time_name in approach_to_valid_for_run_time[approach_name]:
-        run_time += run_time_dict[time_name]
-    return run_time
-
-
-def parse_line(line, dir_name, approach_name, is_approx):
-    model_param, other_param = line.split(")")
-    flow_rate_file_name = dir_name + "/{}_per_flow_rate.pickle"
-    run_time_dict_file_name = dir_name + "/{}_run_time_dict.pickle"
-
-    model_param = model_param[1:]
-    print(line, dir_name)
-    topo_name, traffic_name, scale_factor, topo_file, traffic_file = model_param.split(", ")
-
-    other_param = other_param[1:]
-    if is_approx:
-        try:
-            num_paths, num_iter_approx, total_flow, run_time, detailed_per_flow_file = other_param.split(",")
-            num_iter = (num_iter_approx)
-        except ValueError:
-            num_paths, num_iter_approx, num_iter_bet, total_flow, run_time, detailed_per_flow_file = other_param.split(",")
-            num_iter = (num_iter_approx, num_iter_bet)
-        print(detailed_per_flow_file)
-        fid_to_rate_mapping = utils.read_pickle_file(flow_rate_file_name.format(detailed_per_flow_file[1:-1]))
-        run_time_dict = utils.read_pickle_file(run_time_dict_file_name.format(detailed_per_flow_file[1:-1]))
-        output_run_time = get_output_run_time(approach_name, run_time_dict)
-        return traffic_file, int(num_paths), num_iter, float(total_flow), output_run_time, fid_to_rate_mapping
-
-    num_paths, total_flow, run_time, detailed_per_flow_file = other_param.split(",")
-    fid_to_rate_mapping = utils.read_pickle_file(flow_rate_file_name.format(detailed_per_flow_file[:-1]))
-    run_time_dict = utils.read_pickle_file(run_time_dict_file_name.format(detailed_per_flow_file[:-1]))
-    output_run_time = get_output_run_time(approach_name, run_time_dict)
-    return traffic_file, int(num_paths), float(total_flow), output_run_time, fid_to_rate_mapping
-
-
-def get_total_thru_run_time_dict_approx(approach_name, dir_name):
-    total_thru_dict = defaultdict(lambda: defaultdict(dict))
-    run_time_dict = defaultdict(lambda: defaultdict(dict))
-    fid_to_flow_rate_mapping_dict = defaultdict(lambda: defaultdict(dict))
-    with open(dir_name + ".txt", "r") as fp:
-        for l in fp.readlines():
-            traffic_file, num_paths, num_iter, total_flow, run_time, fid_to_rate_mapping = parse_line(l, dir_name,
-                                                                                                      approach_name,
-                                                                                                      is_approx=True)
-            if not is_topo_traffic_valid(traffic_file):
-                print(f"skipping ${traffic_file}$ either topo or traffic not valid!!")
-                continue
-            total_thru_dict[num_paths][traffic_file][num_iter] = total_flow
-            run_time_dict[num_paths][traffic_file][num_iter] = run_time
-            fid_to_flow_rate_mapping_dict[num_paths][traffic_file][num_iter] = fid_to_rate_mapping
-    return total_thru_dict, run_time_dict, fid_to_flow_rate_mapping_dict
-
-
-def get_total_thru_run_time_dict(approach_name, dir_name):
-    total_thru_dict = defaultdict(dict)
-    run_time_dict = defaultdict(dict)
-    fid_to_flow_rate_mapping_dict = defaultdict(dict)
-    with open(dir_name + ".txt", "r") as fp:
-        for l in fp.readlines():
-            traffic_file, num_paths, total_flow, run_time, fid_to_rate_mapping = parse_line(l, dir_name,
-                                                                                            approach_name,
-                                                                                            is_approx=False)
-            if not is_topo_traffic_valid(traffic_file):
-                print(f"skipping either topo or traffic not valid!!")
-                continue
-            total_thru_dict[num_paths][traffic_file] = total_flow
-            run_time_dict[num_paths][traffic_file] = run_time
-            fid_to_flow_rate_mapping_dict[num_paths][traffic_file] = fid_to_rate_mapping
-    return total_thru_dict, run_time_dict, fid_to_flow_rate_mapping_dict
-
-
-def compute_fairness_no(baseline_mapping, approach_mapping, theta_fairness):
-    fairness_num = 0
-    num_flows = 0
-    for fid in baseline_mapping:
-        if np.sum(baseline_mapping[fid]) <= 0:
-            continue
-        assert fid in approach_mapping
-        baseline_rate = np.sum(baseline_mapping[fid])
-        alg_rate = np.sum(approach_mapping[fid])
-        f_1 = max(theta_fairness, alg_rate) / max(theta_fairness, baseline_rate)
-        f_2 = max(baseline_rate, theta_fairness) / max(theta_fairness, alg_rate)
-        fairness_num += np.log10(min(f_1, f_2))
-        num_flows += 1
-    return np.power(10, fairness_num/num_flows)
-
-
-def is_topo_traffic_valid(fname):
-    for topo_name, tm_name in TOPO_TM_MODEL_COMB:
-        if topo_name in fname and tm_name in fname:
-            return True
-    return False
-    # topo_valid = False
-    # for topo in TOPO_NAME_LIST:
-    #     if topo in fname:
-    #         topo_valid = True
-    #         break
-    #
-    # traffic_valid = False
-    # for traffic_model in TM_MODEL_LIST:
-    #     if traffic_model in fname:
-    #         traffic_valid = True
-    #         break
-    #
-    # return traffic_valid and topo_valid
-
-
 approach_to_total_thru_mapping = defaultdict(lambda: defaultdict(dict))
 approach_to_run_time_mapping = defaultdict(lambda: defaultdict(dict))
 approach_to_fid_to_rate_mapping = defaultdict(lambda: defaultdict(dict))
 for approach, dir_list in approach_to_log_dir_mapping.items():
-    for dir, is_approx in dir_list:
-        if is_approx:
-            output = get_total_thru_run_time_dict_approx(approach, dir)
-            for num_paths in output[0]:
-                for traffic_file in output[0][num_paths]:
-                    for num_iter in output[0][num_paths][traffic_file]:
-                        if traffic_file not in approach_to_total_thru_mapping[approach][num_paths] or \
-                                num_iter not in approach_to_total_thru_mapping[approach][num_paths][traffic_file]:
-                            approach_to_total_thru_mapping[approach][num_paths][traffic_file] = dict()
-                            approach_to_run_time_mapping[approach][num_paths][traffic_file] = dict()
-                            approach_to_fid_to_rate_mapping[approach][num_paths][traffic_file] = dict()
-                        approach_to_total_thru_mapping[approach][num_paths][traffic_file][num_iter] = output[0][num_paths][traffic_file][num_iter]
-                        approach_to_run_time_mapping[approach][num_paths][traffic_file][num_iter]  = output[1][num_paths][traffic_file][num_iter]
-                        approach_to_fid_to_rate_mapping[approach][num_paths][traffic_file][num_iter]  = output[2][num_paths][traffic_file][num_iter]
-        else:
-            output = get_total_thru_run_time_dict(approach, dir)
-            for num_paths in output[0]:
-                for traffic_file in output[0][num_paths]:
-                    approach_to_total_thru_mapping[approach][num_paths][traffic_file] = output[0][num_paths][traffic_file]
-                    approach_to_run_time_mapping[approach][num_paths][traffic_file] = output[1][num_paths][traffic_file]
-                    approach_to_fid_to_rate_mapping[approach][num_paths][traffic_file] = output[2][num_paths][traffic_file]
+    output = benchmark_plot_utils.read_rate_log_file(approach, dir_list,
+                                                     valid_topo_traffic_list=TOPO_TM_MODEL_COMB,
+                                                     approach_to_valid_for_run_time=approach_to_valid_for_run_time)
+    approach_to_total_thru_mapping[approach] = output[0]
+    approach_to_run_time_mapping[approach] = output[1]
+    approach_to_fid_to_rate_mapping[approach] = output[2]
 
 
 
-approach_baseline = constants.SWAN
-approach_compare = constants.APPROX_BET_MCF
-approach_iter = ('1', '10')
-assert approach_baseline in approach_to_log_dir_mapping
-assert approach_compare in approach_to_log_dir_mapping
+# approach_baseline = constants.SWAN
+# approach_compare = constants.APPROX_BET_MCF
+# approach_iter = ('1', '10')
+# assert approach_baseline in approach_to_log_dir_mapping
+# assert approach_compare in approach_to_log_dir_mapping
 # '../ncflow/traffic-matrices/bimodal/Uninett2010.graphml_bimodal_987377064_16.0_0.2_0.1-0.2_0.4-0.8_traffic-matrix.pkl'
 # run_time_baseline_dict = approach_to_run_time_mapping[approach_baseline]
 # for num_paths in run_time_baseline_dict:
@@ -404,12 +289,13 @@ for num_paths in NUM_PATH_LIST:
             is_approx = approach_to_log_dir_mapping[approach][0][1]
             if is_approx:
                 for num_iter, fid_to_rate_mapping in approach_to_fid_to_rate_mapping[approach][num_paths][file_name].items():
-                    fairness_no = compute_fairness_no(baseline_fid_to_rate_mapping, fid_to_rate_mapping, theta_fairness)
+                    fairness_no = benchmark_plot_utils.compute_fairness_no(baseline_fid_to_rate_mapping,
+                                                                           fid_to_rate_mapping, theta_fairness)
                     approach_to_fairness[(approach, num_iter)].append(fairness_no)
             else:
-                approach_to_fairness[(approach, 0)].append(compute_fairness_no(baseline_fid_to_rate_mapping,
-                                                                          approach_to_fid_to_rate_mapping[approach][num_paths][file_name],
-                                                                          theta_fairness))
+                approach_to_fairness[(approach, 0)].append(benchmark_plot_utils.compute_fairness_no(baseline_fid_to_rate_mapping,
+                                                                                                    approach_to_fid_to_rate_mapping[approach][num_paths][file_name],
+                                                                                                    theta_fairness))
 
     plt.figure(figsize=(9, 5))
     for approach, num_iter in approach_to_fairness:

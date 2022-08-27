@@ -134,7 +134,7 @@ def get_rates(problem: Problem, path_split_ratio_mapping, num_paths_per_flow, nu
 
     if return_matrix:
         output = final_flow_rate.reshape(num_flows, num_paths_per_flow)
-        return output, dur, all_satisfied
+        return output, dur, all_satisfied, run_time_dict
 
     extract_st_time = datetime.now()
     for fid, (src, dst, demand) in list_commodities:
