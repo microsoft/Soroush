@@ -92,8 +92,9 @@ for num_paths in num_path_list:
                                                 log_file = log_file.format(waterfilling_utils.get_approx_label(approach, (num_iter_approx, num_iter_bet)))
                                                 log_folder_flows = log_folder_flows.format(waterfilling_utils.get_approx_label(approach, (num_iter_approx, num_iter_bet)))
 
-                                                per_flow_log_file_name = file_name[4].split("/")[-1][:-4] + f"_num_paths_{num_paths}"
-                                                per_flow_log_file_name += f"_iter_approx_{num_iter_approx}_iter_bet_{num_iter_bet}"
+                                                per_flow_log_file_name1 = file_name[4].split("/")[-1][:-4] + f"_num_paths_{num_paths}"
+                                                per_flow_log_file_name = per_flow_log_file_name1 + \
+                                                                         f"_iter_approx_{num_iter_approx}_iter_bet_{num_iter_bet}"
                                                 print("=" * 5, file_name, per_flow_log_file_name, "=" * 5)
 
                                                 approx_output = approx_water_bet_plus_mcf.get_rates(problem=problem,
@@ -118,7 +119,7 @@ for num_paths in num_path_list:
                                                 for (src, dst) in fid_to_flow_rate_mapping:
                                                     total_flow += np.sum(fid_to_flow_rate_mapping[src, dst])
 
-                                                fairness_no = benchmark_plot_utils.compute_fairness_no(danna_fid_to_rate_mapping,
+                                                fairness_no = benchmark_plot_utils.compute_fairness_no(danna_fid_to_rate_mapping[num_paths][per_flow_log_file_name1],
                                                                                                        fid_to_flow_rate_mapping,
                                                                                                        theta_fairness=0.1)
 
