@@ -21,16 +21,21 @@ def get_rates(approach, problem, path_output, num_paths_per_flow, num_approx_ite
                                                                                      link_cap=link_cap,
                                                                                      path_edge_idx_mapping=path_edge_idx_mapping,
                                                                                      path_path_len_mapping=path_path_len_mapping)
-        
+
     elif approach == constants.APPROX_MCF:
         fid_to_flow_rate_mapping, dur = approx_water_plus_mcf.get_rates(problem, path_dict, path_edge_idx_mapping,
                                                                         num_paths_per_flow, num_iter=num_approx_iter,
                                                                         link_cap=link_cap)
     elif approach == constants.APPROX_BET:
-        fid_to_flow_rate_mapping, dur = approx_water_bet.get_rates(problem, path_edge_idx_mapping, path_path_len_mapping,
-                                                                   path_total_path_len_mapping, path_split_ratio_mapping,
-                                                                   num_paths_per_flow, num_iter_approx_water=num_approx_iter,
-                                                                   num_iter_bet=num_bet_iter, link_cap=link_cap)
+        fid_to_flow_rate_mapping, dur, _, run_time_dict = approx_water_bet.get_rates(problem,
+                                                                                     path_split_ratio_mapping,
+                                                                                     num_paths_per_flow,
+                                                                                     num_iter_approx_water=num_approx_iter,
+                                                                                     num_iter_bet=num_bet_iter,
+                                                                                     link_cap=link_cap,
+                                                                                     path_edge_idx_mapping=path_edge_idx_mapping,
+                                                                                     path_path_len_mapping=path_path_len_mapping,
+                                                                                     bias_toward_low_flow_rate=False)
     elif approach == constants.APPROX_BET_MCF:
         # problem: problem.Problem, paths, path_edge_idx_mapping, path_path_len_mapping, path_total_path_len_mapping,
         # path_split_ratio_mapping, num_paths_per_flow, num_iter_approx_water, num_iter_bet, link_cap, break_down = False,
@@ -72,7 +77,8 @@ TOPO_NAME_LIST = [
 # APPROACH_LIST = [constants.APPROX_MCF, constants.APPROX_BET, constants.APPROX_BET_MCF]
 # APPROACH_LIST = [constants.APPROX_BET, constants.APPROX_BET_MCF]
 APPROACH_LIST = [
-    constants.APPROX,
+    # constants.APPROX,
+    constants.APPROX_BET,
     # constants.APPROX_BET_MCF,
 ]
 # num_path_list = [4, 16]
