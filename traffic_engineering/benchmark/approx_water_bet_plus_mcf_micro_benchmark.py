@@ -119,7 +119,7 @@ for num_paths in num_path_list:
                                                 for (src, dst) in fid_to_flow_rate_mapping:
                                                     total_flow += np.sum(fid_to_flow_rate_mapping[src, dst])
 
-                                                fairness_no = benchmark_plot_utils.compute_fairness_no(danna_fid_to_rate_mapping[num_paths][per_flow_log_file_name1],
+                                                fairness_no = benchmark_plot_utils.compute_fairness_no(danna_fid_to_rate_mapping[num_paths][file_name[4]],
                                                                                                        fid_to_flow_rate_mapping,
                                                                                                        theta_fairness=0.1)
 
