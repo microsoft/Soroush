@@ -1,5 +1,6 @@
 import sys
 import os
+from collections import defaultdict
 
 import numpy as np
 
@@ -36,6 +37,17 @@ danna_files = [("../outputs/danna_practical_2022_08_16_17_13_19_dc44cf7e", 0),
 output_fairness_baseline = benchmark_plot_utils.read_rate_log_file(constants.DANNA, danna_files,
                                                                    "*", {constants.DANNA: "*"})
 danna_fid_to_rate_mapping = output_fairness_baseline[2]
+danna_to_fid_rate_vector_mapping = defaultdict(lambda: defaultdict(lambda: np.zeros(shape=len(danna_fid_to_rate_mapping))))
+for tm_model in TM_MODEL_LIST:
+    for topo_name in TOPO_NAME_LIST:
+        fnames = utils.find_topo_tm_fname(topo_name, tm_model)
+        for file_name in fnames:
+            problem = Problem.from_file(file_name[3], file_name[4])
+            utils.revise_list_commodities(problem)
+            for fid, (src, dst, _) in problem.sparse_commodity_list:
+                for num_path in danna_fid_to_rate_mapping:
+                    danna_to_fid_rate_vector_mapping[num_path][f"'{file_name[4]}'"][fid] = \
+                        np.sum(danna_fid_to_rate_mapping[num_path][f"'{file_name[4]}'"][src, dst])
 
 approach = constants.APPROX_BET
 num_path_list = [16]
@@ -44,7 +56,7 @@ num_iter_bet_list = [10]
 grb_method_list = [1, 2]
 min_beta_list = [1e-2, 1e-4, 1e-6, 1e-8]
 min_epsilon_list = [1e-2, 1e-4, 1e-6, 1e-8]
-num_bin_list = [2, 5, 7, 10, 12, 15, 20, 25]
+num_bin_list = [2, 5, 7, 10, 12, 15, 20]
 k_list = [1, 10, 100]
 cap_scale_factor_list = [1, 100, 1000]
 link_cap = 1000.0
@@ -119,9 +131,12 @@ for num_paths in num_path_list:
                                                 for (src, dst) in fid_to_flow_rate_mapping:
                                                     total_flow += np.sum(fid_to_flow_rate_mapping[src, dst])
 
-                                                fairness_no = benchmark_plot_utils.compute_fairness_no(danna_fid_to_rate_mapping[num_paths][f"'{file_name[4]}'"],
-                                                                                                       fid_to_flow_rate_mapping,
-                                                                                                       theta_fairness=0.1)
+                                                fairness_no = \
+                                                    benchmark_plot_utils.compute_fairness_no_vectorized_baseline(
+                                                        danna_to_fid_rate_vector_mapping[num_paths][f"'{file_name[4]}'"],
+                                                        fid_to_flow_rate_mapping,
+                                                        problem.sparse_commodity_list,
+                                                        theta_fairness=0.1)
 
                                                 log_txt = f"{mcf_method},{scale_factor},{num_bins}," \
                                                           f"{min_epsilon},{min_beta},{k}," \

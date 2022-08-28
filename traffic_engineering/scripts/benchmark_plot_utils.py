@@ -141,3 +141,23 @@ def compute_fairness_no(baseline_mapping, approach_mapping, theta_fairness):
         fairness_num += np.log10(min(f_1, f_2))
         num_flows += 1
     return np.power(10, fairness_num/num_flows)
+
+
+def compute_fairness_no_vectorized_baseline(baseline_rate_vector, approach_mapping, list_commodities, theta_fairness):
+    assert len(baseline_rate_vector) == len(approach_mapping)
+    assert np.all(baseline_rate_vector > 0)
+    approach_vectorized = np.zeros(shape=len(baseline_rate_vector))
+    for fid, (src, dst, _) in list_commodities:
+        approach_vectorized[fid] = np.sum(approach_mapping[(src, dst)])
+
+    quantized_approach_vector = np.maximum(approach_vectorized, theta_fairness)
+    quantized_baseline_vector = np.maximum(baseline_rate_vector, theta_fairness)
+
+    output_fairness_1 = quantized_baseline_vector / quantized_approach_vector
+    output_fairness_2 = quantized_approach_vector / quantized_baseline_vector
+
+    assert not np.any(np.isnan(output_fairness_1))
+    assert not np.any(np.isnan(output_fairness_2))
+    fairness_no = np.sum(np.log10(np.minimum(output_fairness_1, output_fairness_2)))
+
+    return np.power(10, fairness_no / len(baseline_rate_vector))
