@@ -44,7 +44,7 @@ output_approx_bet = benchmark_plot_utils.read_rate_log_file(constants.APPROX_BET
 danna_fid_to_rate_mapping = output_fairness_baseline[2]
 approx_bet_fid_to_rate_mapping = output_approx_bet[2]
 danna_to_fid_rate_vector_mapping = defaultdict(dict)
-approx_bet_file_to_fairness_mapping = dict()
+approx_bet_file_to_fairness_mapping = defaultdict(dict)
 for tm_model in TM_MODEL_LIST:
     for topo_name in TOPO_NAME_LIST:
         fnames = utils.find_topo_tm_fname(topo_name, tm_model)
@@ -57,11 +57,12 @@ for tm_model in TM_MODEL_LIST:
                 for fid, (src, dst, _) in problem.sparse_commodity_list:
                     danna_to_fid_rate_vector_mapping[num_path][f"'{file_name[4]}'"][fid] = \
                         np.sum(danna_fid_to_rate_mapping[num_path][f"'{file_name[4]}'"][src, dst])
-                approx_bet_file_to_fairness_mapping[f"'{file_name[4]}'"] = \
-                    benchmark_plot_utils.compute_fairness_no_vectorized_baseline(danna_to_fid_rate_vector_mapping[num_path][f"'{file_name[4]}'"],
-                                                                                 approx_bet_fid_to_rate_mapping[num_path][f"'{file_name[4]}'"],
-                                                                                 problem.sparse_commodity_list,
-                                                                                 theta_fairness=0.1)
+                for num_iter in approx_bet_fid_to_rate_mapping[num_path][f"'{file_name[4]}'"]:
+                    approx_bet_file_to_fairness_mapping[f"'{file_name[4]}'"][num_iter] = \
+                        benchmark_plot_utils.compute_fairness_no_vectorized_baseline(danna_to_fid_rate_vector_mapping[num_path][f"'{file_name[4]}'"],
+                                                                                     approx_bet_fid_to_rate_mapping[num_path][f"'{file_name[4]}'"][num_iter],
+                                                                                     problem.sparse_commodity_list,
+                                                                                     theta_fairness=0.1)
 
 approach = constants.APPROX_BET
 num_path_list = [16]
@@ -182,7 +183,7 @@ for num_paths in num_path_list:
                                                         problem.sparse_commodity_list,
                                                         theta_fairness=0.1)
                                                 approx_bet_fairness_no = \
-                                                    approx_bet_file_to_fairness_mapping[f"'{file_name[4]}'"]
+                                                    approx_bet_file_to_fairness_mapping[f"'{file_name[4]}'"][(str(num_iter_approx), str(num_iter_bet))]
                                                 log_txt = f"{mcf_method},{scale_factor},{num_bins}," \
                                                           f"{min_epsilon},{min_beta},{k}," \
                                                           f"{file_name},{num_paths},{num_iter_approx}," \
