@@ -34,31 +34,75 @@ TOPO_NAME_LIST = [
 danna_files = [("../outputs/danna_practical_2022_08_16_17_13_19_dc44cf7e", 0),
                ("../outputs/danna_practical_2022_08_16_22_22_21_6afe1d48", 0)]
 
+approx_bet_files = [("../outputs/approx(1)_bet_2022_08_27_01_50_46_4284934e", 1)]
+
 output_fairness_baseline = benchmark_plot_utils.read_rate_log_file(constants.DANNA, danna_files,
                                                                    "*", {constants.DANNA: "*"})
+output_approx_bet = benchmark_plot_utils.read_rate_log_file(constants.APPROX_BET, approx_bet_files,
+                                                            "*", {constants.APPROX_BET: "*"})
+
 danna_fid_to_rate_mapping = output_fairness_baseline[2]
-danna_to_fid_rate_vector_mapping = defaultdict(lambda: defaultdict(lambda: np.zeros(shape=len(danna_fid_to_rate_mapping))))
+approx_bet_fid_to_rate_mapping = output_approx_bet[2]
+danna_to_fid_rate_vector_mapping = defaultdict(dict)
+approx_bet_file_to_fairness_mapping = dict()
 for tm_model in TM_MODEL_LIST:
     for topo_name in TOPO_NAME_LIST:
         fnames = utils.find_topo_tm_fname(topo_name, tm_model)
         for file_name in fnames:
             problem = Problem.from_file(file_name[3], file_name[4])
             utils.revise_list_commodities(problem)
-            for fid, (src, dst, _) in problem.sparse_commodity_list:
-                for num_path in danna_fid_to_rate_mapping:
+            for num_path in danna_fid_to_rate_mapping:
+                danna_to_fid_rate_vector_mapping[num_path][f"'{file_name[4]}'"] = \
+                    np.zeros(shape=len(problem.sparse_commodity_list))
+                for fid, (src, dst, _) in problem.sparse_commodity_list:
                     danna_to_fid_rate_vector_mapping[num_path][f"'{file_name[4]}'"][fid] = \
                         np.sum(danna_fid_to_rate_mapping[num_path][f"'{file_name[4]}'"][src, dst])
+                approx_bet_file_to_fairness_mapping[f"'{file_name[4]}'"] = \
+                    benchmark_plot_utils.compute_fairness_no_vectorized_baseline(danna_to_fid_rate_vector_mapping[num_path][f"'{file_name[4]}'"],
+                                                                                 approx_bet_fid_to_rate_mapping[num_path][f"'{file_name[4]}'"],
+                                                                                 problem.sparse_commodity_list,
+                                                                                 theta_fairness=0.1)
 
 approach = constants.APPROX_BET
 num_path_list = [16]
 num_iter_approx_list = [1]
 num_iter_bet_list = [10]
-grb_method_list = [1, 2]
-min_beta_list = [1e-2, 1e-4, 1e-6, 1e-8]
-min_epsilon_list = [1e-2, 1e-4, 1e-6, 1e-8]
-num_bin_list = [2, 5, 7, 10, 12, 15, 20]
-k_list = [1, 10, 100]
-cap_scale_factor_list = [1, 100, 1000]
+grb_method_list = [
+    1,
+    2
+]
+min_beta_list = [
+    1e-2,
+    1e-4,
+    1e-6,
+    # 1e-8
+]
+min_epsilon_list = [
+    1e-2,
+    1e-4,
+    1e-6,
+    # 1e-8
+]
+num_bin_list = [
+    # 2,
+    5,
+    7,
+    10,
+    12,
+    15,
+    20
+]
+k_list = [
+    1,
+    10,
+    100
+]
+
+cap_scale_factor_list = [
+    1,
+    100,
+    1000
+]
 link_cap = 1000.0
 log_dir = "../outputs"
 fid = utils.get_fid()
@@ -66,7 +110,7 @@ log_file = f"../outputs/mini_benchmark_approx_w_bet_p_mcf_{fid}.txt"
 log_folder_flows = f"../outputs/mini_benchmark_approx_w_bet_p_mcf_{fid}/"
 base_split = 0.9
 split_type = constants.EXPONENTIAL_DECAY
-num_scenario_per_topo_traffic = 3
+num_scenario_per_topo_traffic = 2
 
 for num_paths in num_path_list:
     for topo_name in TOPO_NAME_LIST:
@@ -137,12 +181,14 @@ for num_paths in num_path_list:
                                                         fid_to_flow_rate_mapping,
                                                         problem.sparse_commodity_list,
                                                         theta_fairness=0.1)
-
+                                                approx_bet_fairness_no = \
+                                                    approx_bet_file_to_fairness_mapping[f"'{file_name[4]}'"]
                                                 log_txt = f"{mcf_method},{scale_factor},{num_bins}," \
                                                           f"{min_epsilon},{min_beta},{k}," \
                                                           f"{file_name},{num_paths},{num_iter_approx}," \
                                                           f"{num_iter_bet},{total_flow},{dur}," \
                                                           f"{run_time_dict['solver_time_equi_depth']},{fairness_no}," \
+                                                          f"{approx_bet_fairness_no}" \
                                                           f"{per_flow_log_file_name}\n"
                                                 utils.write_to_file(log_txt, log_dir, log_file)
                                                 print("results:", log_txt)
