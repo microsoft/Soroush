@@ -41,6 +41,7 @@ output_fairness_baseline = benchmark_plot_utils.read_rate_log_file(constants.DAN
 output_approx_bet = benchmark_plot_utils.read_rate_log_file(constants.APPROX_BET, approx_bet_files,
                                                             "*", {constants.APPROX_BET: "*"})
 
+
 danna_fid_to_rate_mapping = output_fairness_baseline[2]
 approx_bet_fid_to_rate_mapping = output_approx_bet[2]
 danna_to_fid_rate_vector_mapping = defaultdict(dict)
@@ -64,12 +65,16 @@ for tm_model in TM_MODEL_LIST:
                                                                                      problem.sparse_commodity_list,
                                                                                      theta_fairness=0.1)
 
+
+del output_fairness_baseline
+del output_approx_bet
+
 approach = constants.APPROX_BET
 num_path_list = [16]
 num_iter_approx_list = [1]
 num_iter_bet_list = [10]
 grb_method_list = [
-    1,
+    # 1,
     2
 ]
 min_beta_list = [
@@ -79,19 +84,20 @@ min_beta_list = [
     # 1e-8
 ]
 min_epsilon_list = [
-    1e-2,
-    1e-4,
+    # 1e-2,
+    # 1e-4,
     1e-6,
     # 1e-8
 ]
 num_bin_list = [
     # 2,
-    5,
-    7,
-    10,
-    12,
-    15,
-    20
+    # 5,
+    # 7,
+    # 10,
+    # 12,
+    # 15,
+    # 20
+    "SWAN"
 ]
 k_list = [
     1,
@@ -101,8 +107,8 @@ k_list = [
 
 cap_scale_factor_list = [
     1,
-    100,
-    1000
+    # 100,
+    # 1000
 ]
 link_cap = 1000.0
 log_dir = "../outputs"
@@ -112,6 +118,8 @@ log_folder_flows = f"../outputs/mini_benchmark_approx_w_bet_p_mcf_{fid}/"
 base_split = 0.9
 split_type = constants.EXPONENTIAL_DECAY
 num_scenario_per_topo_traffic = 2
+U = 0.1
+alpha = 2
 
 for num_paths in num_path_list:
     for topo_name in TOPO_NAME_LIST:
@@ -144,6 +152,10 @@ for num_paths in num_path_list:
                                     for k in k_list:
                                         problem = Problem.from_file(file_name[3], file_name[4])
                                         utils.revise_list_commodities(problem)
+                                        if num_bins == "SWAN":
+                                            max_demand = np.max(problem.traffic_matrix.tm)
+                                            U = max(U, link_cap / len(problem.sparse_commodity_list))
+                                            num_bins = 1 + int(np.ceil(np.log(max_demand / U) / np.log(alpha)))
                                         for num_iter_approx in num_iter_approx_list:
                                             for num_iter_bet in num_iter_bet_list:
                                                 log_file = log_file.format(waterfilling_utils.get_approx_label(approach, (num_iter_approx, num_iter_bet)))
@@ -189,7 +201,7 @@ for num_paths in num_path_list:
                                                           f"{file_name},{num_paths},{num_iter_approx}," \
                                                           f"{num_iter_bet},{total_flow},{dur}," \
                                                           f"{run_time_dict['solver_time_equi_depth']},{fairness_no}," \
-                                                          f"{approx_bet_fairness_no}" \
+                                                          f"{approx_bet_fairness_no}," \
                                                           f"{per_flow_log_file_name}\n"
                                                 utils.write_to_file(log_txt, log_dir, log_file)
                                                 print("results:", log_txt)
