@@ -175,7 +175,7 @@ def get_rates(problem: problem.Problem, paths, path_edge_idx_mapping, num_paths_
 def compute_throughput_path_based_given_tm(flow_details, fid_to_throughput_lb, link_cap, demand_vector,
                                            link_src_dst_path_dict, list_possible_paths, epsilon, alpha, beta, k,
                                            num_flows_per_barrier, mcf_grb_method=2, break_down=False,
-                                           link_cap_scale_multiplier=1):
+                                           link_cap_scale_multiplier=1, round_decimal_point=4):
     run_time_dict = dict()
     run_time_dict[MODEL_TIME] = 0
     run_time_dict[SOLVER_TIME] = 0
@@ -187,8 +187,8 @@ def compute_throughput_path_based_given_tm(flow_details, fid_to_throughput_lb, l
     throughput_per_flow = np.add.reduce(fid_to_throughput_lb, axis=1)
     sorted_fids = np.argsort(throughput_per_flow)
     num_bins = np.int(np.ceil(num_flows / num_flows_per_barrier))
-    additive_term = k * np.power(beta, np.arange(num_bins - 1, 0, -1)) / link_cap_scale_multiplier
-    multi_coeff_flows = np.power(epsilon, np.arange(num_bins))
+    additive_term = k * np.round(np.power(beta, np.arange(num_bins - 1, 0, -1)) / link_cap_scale_multiplier, round_decimal_point)
+    multi_coeff_flows = np.round(np.power(epsilon, np.arange(num_bins)), round_decimal_point)
     multiplicative_term = multi_coeff_flows * (1 - alpha) + alpha
     demand_vector /= link_cap_scale_multiplier
     link_cap /= link_cap_scale_multiplier

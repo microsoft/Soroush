@@ -78,37 +78,38 @@ grb_method_list = [
     2
 ]
 min_beta_list = [
-    1e-2,
-    1e-4,
-    1e-6,
+    0,
+    # 1e-2,
+    # 1e-4,
+    # 1e-6,
     # 1e-8
 ]
 min_epsilon_list = [
-    # 1e-2,
-    # 1e-4,
-    1e-6,
+    1e-2,
+    1e-4,
+    # 1e-6,
     # 1e-8
 ]
 num_bin_list = [
     # 2,
-    # 5,
-    # 7,
-    # 10,
-    # 12,
+    5,
+    7,
+    10,
+    12,
     # 15,
     # 20
     "SWAN"
 ]
 k_list = [
     1,
-    10,
-    100
+    # 10,
+    # 100
 ]
 
 cap_scale_factor_list = [
-    1,
+    # 1,
     # 100,
-    # 1000
+    1000
 ]
 link_cap = 1000.0
 log_dir = "../outputs"
