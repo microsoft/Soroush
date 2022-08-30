@@ -82,7 +82,8 @@ def get_rates(problem: problem.Problem, paths, path_edge_idx_mapping, path_path_
                                                                               num_flows_per_barrier=num_flows_per_barrier,
                                                                               mcf_grb_method=mcf_grb_method,
                                                                               break_down=break_down,
-                                                                              link_cap_scale_multiplier=link_cap_scale_factor)
+                                                                              link_cap_scale_multiplier=link_cap_scale_factor,
+                                                                              num_paths_per_flow=num_paths_per_flow)
         run_time_dict_2 = output[-1]
         output = output[:-1]
         for key, val in run_time_dict_2.items():

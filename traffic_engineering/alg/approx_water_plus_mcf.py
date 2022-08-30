@@ -174,7 +174,7 @@ def get_rates(problem: problem.Problem, paths, path_edge_idx_mapping, num_paths_
 ################### Verson 3
 def compute_throughput_path_based_given_tm(flow_details, fid_to_throughput_lb, link_cap, demand_vector,
                                            link_src_dst_path_dict, list_possible_paths, epsilon, alpha, beta, k,
-                                           num_flows_per_barrier, mcf_grb_method=2, break_down=False,
+                                           num_flows_per_barrier, num_paths_per_flow, mcf_grb_method=2, break_down=False,
                                            link_cap_scale_multiplier=1, round_decimal_point=4):
     run_time_dict = dict()
     run_time_dict[MODEL_TIME] = 0
@@ -199,9 +199,11 @@ def compute_throughput_path_based_given_tm(flow_details, fid_to_throughput_lb, l
     flow = m.addVars(list_possible_paths, lb=0, name="flow")
 
     obj = 0
-    t_lb = m.addVars(range(num_bins - 1), lb=0, name=f"t_lb_0")
+    t_lb = m.addVars(range(num_bins - 1), lb=0, ub=link_cap * num_paths_per_flow, name=f"t_lb_0")
     idx = 0
     for bin_idx in range(num_bins):
+        if 0 < bin_idx < num_bins - 1:
+            m.addConstr(t_lb[bin_idx - 1], GRB.LESS_EQUAL, t_lb[bin_idx])
         flow_coefficient = multiplicative_term[bin_idx]
         for i in range(num_flows_per_barrier):
             fid = sorted_fids[idx]
@@ -209,9 +211,9 @@ def compute_throughput_path_based_given_tm(flow_details, fid_to_throughput_lb, l
             obj += flow_coefficient * total_flow
             m.addConstr(total_flow, GRB.LESS_EQUAL, demand_vector[fid])
             if bin_idx > 0:
-                m.addConstr(total_flow, GRB.GREATER_EQUAL, t_lb[bin_idx - 1])
+                m.addConstr(total_flow, GRB.GREATER_EQUAL, t_lb[bin_idx - 1] - constants.EQUI_DEPTH_0_epsilon)
             if bin_idx < num_bins - 1:
-                m.addConstr(total_flow, GRB.LESS_EQUAL, t_lb[bin_idx] + additive_term[bin_idx])
+                m.addConstr(total_flow, GRB.LESS_EQUAL, t_lb[bin_idx] + additive_term[bin_idx] + constants.EQUI_DEPTH_0_epsilon)
             idx += 1
             if idx >= num_flows:
                 break

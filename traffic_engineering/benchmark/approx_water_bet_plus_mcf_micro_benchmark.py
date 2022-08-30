@@ -86,16 +86,18 @@ min_beta_list = [
 ]
 min_epsilon_list = [
     1e-2,
-    1e-4,
+    # 1e-4,
     # 1e-6,
     # 1e-8
 ]
 num_bin_list = [
     # 2,
+    3,
+    4,
     5,
     7,
-    10,
-    12,
+    # 10,
+    # 12,
     # 15,
     # 20
     "SWAN"
@@ -121,6 +123,7 @@ split_type = constants.EXPONENTIAL_DECAY
 num_scenario_per_topo_traffic = 2
 U = 0.1
 alpha = 2
+ignore_scale_factor_under = 16
 
 for num_paths in num_path_list:
     for topo_name in TOPO_NAME_LIST:
@@ -138,7 +141,7 @@ for num_paths in num_path_list:
             for selected_fidx in fnames_idx:
                 file_name = fnames[selected_fidx]
                 tm_scale_factor = file_name[2]
-                while tm_scale_factor < 8.0:
+                while tm_scale_factor < ignore_scale_factor_under:
                     new_fname_idx = np.random.choice(len(fnames), 1)[0]
                     if np.any(fnames_idx == new_fname_idx):
                         continue
