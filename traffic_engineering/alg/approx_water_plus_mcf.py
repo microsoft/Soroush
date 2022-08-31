@@ -195,6 +195,7 @@ def compute_throughput_path_based_given_tm(flow_details, fid_to_throughput_lb, l
 
     m = Model()
     m.setParam(GRB.param.OutputFlag, 0)
+    m.setParam(GRB.param.CrossoverBasis, 1)
     m.setParam(GRB.param.Method, mcf_grb_method)
     flow = m.addVars(list_possible_paths, lb=0, name="flow")
 
