@@ -17,6 +17,7 @@ from alg import approx_waterfilling
 from alg import approx_water_bet
 from alg import approx_water_plus_mcf
 from alg import approx_water_bet_plus_mcf
+from alg import geometric_approx_binning
 from alg import optimization_plus_sorting_networks
 from scripts.problem import Problem
 from utilities import constants
@@ -27,6 +28,7 @@ np.set_printoptions(precision=3, suppress=True)
 
 def create_problem_instance(num_jobs, cluster_spec, seed, ss_share, introduce_skew):
     oracle_throughputs = gavel_utils.read_all_throughputs_json_v2("../gavel/scheduler/simulation_throughputs.json")
+    priority_list = [1, 2, 4, 8]
     rng = random.Random()
     rng.seed(seed)
     jobs = {}
@@ -35,9 +37,11 @@ def create_problem_instance(num_jobs, cluster_spec, seed, ss_share, introduce_sk
     priority_mapping = {}
     for i in range(num_jobs):
         job_id = JobIdPair(i, None)
-        job = gavel_utils.generate_job(throughputs=oracle_throughputs, rng=rng, job_id=job_id,
-                                       generate_multi_gpu_jobs=True)
-                                       # scale_factor_generator_func=lambda x: x.choice([1, 2, 4, 8]))
+        job = gavel_utils.generate_job(
+            throughputs=oracle_throughputs, rng=rng, job_id=job_id,
+            generate_multi_gpu_jobs=True,
+            # scale_factor_generator_func=lambda x: x.choice([1, 2, 4, 8]),
+        )
         jobs[job_id[0]] = job
         job_type_key = (job.job_type, job.scale_factor)
         throughputs[job_id] = {}
@@ -47,7 +51,7 @@ def create_problem_instance(num_jobs, cluster_spec, seed, ss_share, introduce_sk
         # scale_factors[job_id] = np.random.choice([1, 2, 4, 8], 1)[0]
         scale_factors[job_id] = job.scale_factor
         if introduce_skew:
-            priority_mapping[job_id] = (i % 4) + 1.0
+            priority_mapping[job_id] = priority_list[i % 4]
         else:
             priority_mapping[job_id] = 1.0
         # job._priority_weight = priority_mapping[job_id]
@@ -72,10 +76,23 @@ def create_problem_instance(num_jobs, cluster_spec, seed, ss_share, introduce_sk
 
 
 def sweep(all_num_jobs, num_trials, ss_share, introduce_skew):
-    all_runtimes = {constants.GAVEL: {}, constants.APPROX.format(1): {}, constants.APPROX.format(1) + "-prio-thru-aware": {},
-                    constants.APPROX_BET.format(1, 10): {}, constants.APPROX_BET.format(1, 10) + "-prio-thru-aware": {},
-                    constants.APPROX_MCF.format(1) + "-prio-thru-aware": {}, constants.APPROX_BET_MCF.format(1, 10) + "-prio-thru-aware": {},
-                    constants.APPROX_BET_MCF.format(1, 10) + "-prio-thru-aware-biased": {}, constants.GAVEL + "-wo-waterfilling": {},}
+    all_runtimes = {
+        constants.GAVEL: {},
+        constants.APPROX.format(1): {},
+        constants.APPROX.format(1) + "-prio-thru-aware": {},
+        constants.APPROX_BET.format(1, 10): {},
+        constants.APPROX_BET.format(1, 2) + "-prio-thru-aware": {},
+        constants.APPROX_BET.format(1, 4) + "-prio-thru-aware": {},
+        constants.APPROX_BET.format(1, 6) + "-prio-thru-aware": {},
+        constants.APPROX_BET.format(1, 8) + "-prio-thru-aware": {},
+        constants.APPROX_BET.format(1, 10) + "-prio-thru-aware": {},
+        constants.APPROX_MCF.format(1) + "-prio-thru-aware": {},
+        constants.APPROX_BET_MCF.format(1, 10) + "-prio-thru-aware": {},
+        constants.APPROX_BET_MCF.format(1, 10) + "-prio-thru-aware-biased": {},
+        constants.GAVEL + "-wo-waterfilling": {},
+        constants.GANDIVA: {},
+        constants.GEOMETRIC_BINNER: {}
+    }
                     # constants.OPT_SORTING_NETWORK: {}}
     all_effective_throughputs = {}
     for key in all_runtimes:
@@ -93,6 +110,15 @@ def sweep(all_num_jobs, num_trials, ss_share, introduce_skew):
         for i in range(num_trials):
             throughputs, scale_factors, priority_mapping, problem = create_problem_instance(num_jobs, cluster_spec, seed=i,
                                                                                             ss_share=ss_share, introduce_skew=introduce_skew)
+
+            # print("======================", f"{constants.GANDIVA}")
+            # allocation, runtime = gavel_max_min_fairness_waterfilling.get_allocation(throughputs, scale_factors, priority_mapping, cluster_spec,
+            #                                                                          ss_share, waterfilling_enabled=False,
+            #                                                                          gandiva_policy=True)
+            # all_runtimes[constants.GANDIVA][num_jobs].append(runtime)
+            # effective_throughputs = compute_effective_throughput(problem, allocation, throughputs)
+            # all_effective_throughputs[constants.GANDIVA][num_jobs].append(effective_throughputs)
+
             print("======================", f"{constants.GAVEL}-w-waterfilling")
             allocation, runtime = gavel_max_min_fairness_waterfilling.get_allocation(throughputs, scale_factors, priority_mapping,
                                                                                      cluster_spec, ss_share,
@@ -126,26 +152,63 @@ def sweep(all_num_jobs, num_trials, ss_share, introduce_skew):
             all_runtimes[constants.APPROX_BET.format(1, 10)][num_jobs].append(runtime)
             all_effective_throughputs[constants.APPROX_BET.format(1, 10)][num_jobs].append(effective_throughputs)
 
+            print("======================", f"{constants.APPROX_BET.format(1, 2)}-prio-thru-aware")
+            allocation, runtime = approx_water_bet.get_rates(problem, num_iter_approx_water=1, num_iter_bet=2,
+                                                             biased_toward_lower_norm_eff_thru=False,
+                                                             biased_alpha=0.5,
+                                                             priority_aware=True, throughput_aware=False)
+            effective_throughputs = compute_effective_throughput(problem, allocation, throughputs)
+            all_runtimes[constants.APPROX_BET.format(1, 2) + "-prio-thru-aware"][num_jobs].append(runtime)
+            all_effective_throughputs[constants.APPROX_BET.format(1, 2) + "-prio-thru-aware"][num_jobs].append(effective_throughputs)
+
+
+            print("======================", f"{constants.APPROX_BET.format(1, 4)}-prio-thru-aware")
+            allocation, runtime = approx_water_bet.get_rates(problem, num_iter_approx_water=1, num_iter_bet=4,
+                                                             biased_toward_lower_norm_eff_thru=False,
+                                                             biased_alpha=0.5,
+                                                             priority_aware=True, throughput_aware=False)
+            effective_throughputs = compute_effective_throughput(problem, allocation, throughputs)
+            all_runtimes[constants.APPROX_BET.format(1, 4) + "-prio-thru-aware"][num_jobs].append(runtime)
+            all_effective_throughputs[constants.APPROX_BET.format(1, 4) + "-prio-thru-aware"][num_jobs].append(effective_throughputs)
+
+            print("======================", f"{constants.APPROX_BET.format(1, 6)}-prio-thru-aware")
+            allocation, runtime = approx_water_bet.get_rates(problem, num_iter_approx_water=1, num_iter_bet=6,
+                                                             biased_toward_lower_norm_eff_thru=False,
+                                                             biased_alpha=0.5,
+                                                             priority_aware=True, throughput_aware=False)
+            effective_throughputs = compute_effective_throughput(problem, allocation, throughputs)
+            all_runtimes[constants.APPROX_BET.format(1, 6) + "-prio-thru-aware"][num_jobs].append(runtime)
+            all_effective_throughputs[constants.APPROX_BET.format(1, 6) + "-prio-thru-aware"][num_jobs].append(effective_throughputs)
+
+            print("======================", f"{constants.APPROX_BET.format(1, 8)}-prio-thru-aware")
+            allocation, runtime = approx_water_bet.get_rates(problem, num_iter_approx_water=1, num_iter_bet=8,
+                                                             biased_toward_lower_norm_eff_thru=False,
+                                                             biased_alpha=0.5,
+                                                             priority_aware=True, throughput_aware=False)
+            effective_throughputs = compute_effective_throughput(problem, allocation, throughputs)
+            all_runtimes[constants.APPROX_BET.format(1, 8) + "-prio-thru-aware"][num_jobs].append(runtime)
+            all_effective_throughputs[constants.APPROX_BET.format(1, 8) + "-prio-thru-aware"][num_jobs].append(effective_throughputs)
+
             print("======================", f"{constants.APPROX_BET.format(1, 10)}-prio-thru-aware")
             allocation, runtime = approx_water_bet.get_rates(problem, num_iter_approx_water=1, num_iter_bet=10,
-                                                             biased_toward_lower_norm_eff_thru=True,
+                                                             biased_toward_lower_norm_eff_thru=False,
                                                              biased_alpha=0.5,
                                                              priority_aware=True, throughput_aware=False)
             effective_throughputs = compute_effective_throughput(problem, allocation, throughputs)
             all_runtimes[constants.APPROX_BET.format(1, 10) + "-prio-thru-aware"][num_jobs].append(runtime)
             all_effective_throughputs[constants.APPROX_BET.format(1, 10) + "-prio-thru-aware"][num_jobs].append(effective_throughputs)
 
-            print("======================", f"{constants.APPROX_MCF.format(1)}-prio-thru-aware")
-            allocation, runtime = approx_water_plus_mcf.get_rates(problem, num_approx_iter=1, priority_aware=True,
-                                                                  epsilon=0.995, k=1, alpha=0, beta=0.01, throughput_aware=True)
-            effective_throughputs = compute_effective_throughput(problem, allocation, throughputs)
-            all_runtimes[constants.APPROX_MCF.format(1) + "-prio-thru-aware"][num_jobs].append(runtime)
-            all_effective_throughputs[constants.APPROX_MCF.format(1) + "-prio-thru-aware"][num_jobs].append(effective_throughputs)
+            # print("======================", f"{constants.APPROX_MCF.format(1)}-prio-thru-aware")
+            # allocation, runtime = approx_water_plus_mcf.get_rates(problem, num_approx_iter=1, priority_aware=True,
+            #                                                       epsilon=0.995, k=1, alpha=0, beta=0.01, throughput_aware=True)
+            # effective_throughputs = compute_effective_throughput(problem, allocation, throughputs)
+            # all_runtimes[constants.APPROX_MCF.format(1) + "-prio-thru-aware"][num_jobs].append(runtime)
+            # all_effective_throughputs[constants.APPROX_MCF.format(1) + "-prio-thru-aware"][num_jobs].append(effective_throughputs)
 
             print("======================", f"{constants.APPROX_BET_MCF.format(1, 10)}-prio-thru-aware")
-            allocation, runtime = approx_water_bet_plus_mcf.get_rates(problem, num_iter_approx_water=1, num_iter_bet=10,
-                                                                      priority_aware=True, epsilon=0.995, k=1, alpha=0,
-                                                                      beta=0.01, throughput_aware=False)
+            allocation, runtime = approx_water_bet_plus_mcf.get_rates(problem, num_iter_approx_water=1, num_iter_bet=2,
+                                                                      priority_aware=True, min_epsilon=1e-6, k=1, alpha=0,
+                                                                      min_beta=1e-4, num_bins=5, throughput_aware=False)
             # allocation, runtime = approx_water_bet_plus_mcf.get_rates(problem, num_iter_approx_water=1, num_iter_bet=2,
             #                                                           priority_aware=True, epsilon=0.995, k=1, alpha=0,
             #                                                           beta=0.99, throughput_aware=False,
@@ -157,7 +220,7 @@ def sweep(all_num_jobs, num_trials, ss_share, introduce_skew):
 
             print("======================", f"{constants.APPROX_BET_MCF.format(1, 10)}-prio-thru-aware-biased")
             allocation, runtime = approx_water_bet_plus_mcf.get_rates(problem, num_iter_approx_water=1, num_iter_bet=2,
-                                                                      epsilon=0.995, k=1, alpha=0, beta=0.01,
+                                                                      min_epsilon=1e-6, k=1, alpha=0, min_beta=0, num_bins=5,
                                                                       priority_aware=True, throughput_aware=False,
                                                                       biased_toward_lower_norm_eff_thru=True,
                                                                       biased_approx_bet_alpha=0.5, break_down=False)
@@ -165,6 +228,11 @@ def sweep(all_num_jobs, num_trials, ss_share, introduce_skew):
             all_runtimes[constants.APPROX_BET_MCF.format(1, 10) + "-prio-thru-aware-biased"][num_jobs].append(runtime)
             all_effective_throughputs[constants.APPROX_BET_MCF.format(1, 10) + "-prio-thru-aware-biased"][num_jobs].append(effective_throughputs)
 
+            print("======================", constants.GEOMETRIC_BINNER)
+            allocation, runtime = geometric_approx_binning.get_rates(2, 0.1, problem, 1e-8)
+            all_runtimes[constants.GEOMETRIC_BINNER][num_jobs].append(runtime)
+            effective_throughputs = compute_effective_throughput(problem, allocation, throughputs)
+            all_effective_throughputs[constants.GEOMETRIC_BINNER][num_jobs].append(effective_throughputs)
             # print("=====================", f"{constants.OPT_SORTING_NETWORK}")
             # allocation, runtime = optimization_plus_sorting_networks.get_rates(problem, break_down=True)
             # effective_throughputs = compute_effective_throughput(problem, allocation, throughputs)
@@ -184,7 +252,10 @@ def compute_effective_throughput(problem:Problem, allocation, throughputs):
                 effective_throughputs[single_job_id] = 0.0
                 all_allocation[single_job_id] = 0.0
         for worker_type in allocation[job_id]:
-            gpu_allocation[worker_type] += allocation[job_id][worker_type] * problem.job_id_to_scale_factor[job_id]
+            max_scale_factor = 0
+            for single_job_id in job_id.singletons():
+                max_scale_factor = max(max_scale_factor, problem.job_id_to_scale_factor[single_job_id])
+            gpu_allocation[worker_type] += allocation[job_id][worker_type] * max_scale_factor
             if gpu_allocation[worker_type] > problem.cluster_spec[worker_type] + constants.O_epsilon:
                 print(gpu_allocation[worker_type])
             assert gpu_allocation[worker_type] <= problem.cluster_spec[worker_type] + constants.O_epsilon + 0.001
@@ -242,16 +313,19 @@ if __name__ == '__main__':
                 fairness_geometric_mean_num /= len(effective_thru)
                 fairness_geometric_mean[policy][num_jobs][sidx] = np.power(10, fairness_geometric_mean_num)
 
+    print("======== run times")
     print(runtimes)
+    print("======= total effective throughput")
     print(total_effect)
+    print("====== fairness")
     print(fairness_geometric_mean)
-    for num_jobs in fairness_cdf:
-        plt.figure()
-        for policy in fairness_cdf[num_jobs]:
-            sn.ecdfplot(fairness_cdf[num_jobs][policy], label=policy)
-        plt.ylabel("Fraction of Jobs")
-        plt.xlabel("Throughput, relative to Gavel")
-        plt.legend()
-        plt.xlim([0, 3])
-        plt.show()
+    # for num_jobs in fairness_cdf:
+    #     plt.figure()
+    #     for policy in fairness_cdf[num_jobs]:
+    #         sn.ecdfplot(fairness_cdf[num_jobs][policy], label=policy)
+    #     plt.ylabel("Fraction of Jobs")
+    #     plt.xlabel("Throughput, relative to Gavel")
+    #     plt.legend()
+    #     plt.xlim([0, 3])
+    #     plt.show()
     # print(all_effective_throughputs)

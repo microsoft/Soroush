@@ -18,7 +18,7 @@ def get_rates(problem: Problem, num_iter, priority_aware=False, throughput_aware
     if break_down:
         checkpoint_1_time = datetime.now()
 
-    per_job_allocation = np.full(num_jobs, constants.INFINITE_JOB_RATE * 1.0)
+    per_job_allocation = np.full(num_jobs, 1.0)
     final_job_allocation = np.empty(shape=num_jobs)
     np_job_list = np.arange(num_jobs)
 
@@ -90,19 +90,20 @@ def get_rates(problem: Problem, num_iter, priority_aware=False, throughput_aware
 
 def _apply_congestion(scale_matrix, job_allocation, non_zeros_jids, gpu_cap, update_rate):
     job_allocation_on_gpus = job_allocation[non_zeros_jids]
-    if np.sum(job_allocation_on_gpus) <= gpu_cap or job_allocation_on_gpus.shape[0] == 0:
+    scaled_allocation = job_allocation_on_gpus * scale_matrix
+    if np.add.reduce(scaled_allocation) <= gpu_cap or job_allocation_on_gpus.shape[0] == 0:
         return np.inf
     mask = np.arange(job_allocation_on_gpus.shape[0])
     while mask.shape[0]:
-        num_scaled_jobs = np.sum(scale_matrix[mask])
+        num_scaled_jobs = np.add.reduce(scale_matrix[mask])
         fair_share = gpu_cap / num_scaled_jobs
-        under_flows = (job_allocation_on_gpus[mask] < fair_share)
-        if ~np.any(under_flows):
+        under_flows = (job_allocation_on_gpus[mask] >= fair_share)
+        if np.logical_and.reduce(under_flows):
             job_allocation_on_gpus[mask] = fair_share
             break
         else:
-            gpu_cap -= np.sum(scale_matrix[mask] * job_allocation_on_gpus[mask] * under_flows)
-            mask = np.compress(~under_flows, mask)
+            gpu_cap -= scaled_allocation[mask] @ (1 - under_flows)
+            mask = np.compress(under_flows, mask)
     if update_rate:
         job_allocation[non_zeros_jids] = job_allocation_on_gpus
     return fair_share

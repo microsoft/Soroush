@@ -10,8 +10,9 @@ from scripts.problem import Problem
 from gavel.scheduler.job_id_pair import JobIdPair
 
 
-def get_rates(problem: Problem, num_iter_approx_water, num_iter_bet, epsilon, k, alpha, beta, priority_aware=False,
-              throughput_aware=False, break_down=False, biased_toward_lower_norm_eff_thru=False, biased_approx_bet_alpha=None):
+def get_rates(problem: Problem, num_iter_approx_water, num_iter_bet, min_epsilon, k, alpha, min_beta,
+              num_bins, priority_aware=False, throughput_aware=False, break_down=False,
+              biased_toward_lower_norm_eff_thru=False, biased_approx_bet_alpha=None):
     assert (not biased_toward_lower_norm_eff_thru) or (biased_approx_bet_alpha is not None)
     st_time = datetime.now()
     output = waterfilling_utils.get_vectorized_characteristics(problem)
@@ -29,11 +30,17 @@ def get_rates(problem: Problem, num_iter_approx_water, num_iter_bet, epsilon, k,
                                                                return_matrix=True,
                                                                biased_toward_lower_norm_eff_thru=biased_toward_lower_norm_eff_thru,
                                                                biased_alpha=biased_approx_bet_alpha)
-
+    # setting the parameters
     job_details = problem.sparse_job_list
+    num_jobs = len(job_details)
+    num_jobs_per_barrier = np.int(np.ceil(num_jobs / num_bins))
+    beta = np.power(min_beta, 1/(num_bins - 1))
+    epsilon = np.power(min_epsilon, 1/(num_bins - 1))
     output = approx_water_plus_mcf.compute_throughput_given_jobs(job_details, allocation_matrix, normalized_throughput_coeff,
                                                                  throughput_coeff, scale_factor_vector, problem.capacity_vector,
-                                                                 epsilon=epsilon, k=k, alpha=alpha, beta=beta, break_down=break_down)
+                                                                 epsilon=epsilon, k=k, alpha=alpha, beta=beta,
+                                                                 num_jobs_per_barrier=num_jobs_per_barrier,
+                                                                 break_down=break_down)
     dur = (datetime.now() - st_time).total_seconds()
     if break_down:
         final_job_allocation_matrix, detailed_dur = output

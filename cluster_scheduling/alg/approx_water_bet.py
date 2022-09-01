@@ -15,41 +15,12 @@ def get_scale_matrix(scale_factor_vector, priority_vector, row_list, column_list
                      biased_toward_lower_norm_eff_thru=False, bias_allocation_weight=None, bias_alpha=None):
     assert not throughput_aware
 
-    bias_coeff = num_tokens
+    bias_coeff = 1
     if priority_aware:
         bias_coeff *= priority_vector.flatten()
     if biased_toward_lower_norm_eff_thru:
-        # num_jobs = len(list_jobs)
-        # bias_coeff = np.empty(num_jobs)
-        # sorted_jids = np.argsort(bias_allocation_weight)
-        # bias_coeff[sorted_jids] = 1 + np.power(0.99, np.arange(num_jobs))
         max_allocation = np.average(bias_allocation_weight)
         bias_coeff *= np.repeat(0.000001 + np.power(bias_alpha, bias_allocation_weight / max_allocation), repeats=num_gpus)
-
-    # scale_data_list = np.empty_like(row_list, dtype=np.float32)
-    # weight_matrix = np.empty(num_cols)
-    # last_id = 0
-    # for jid, (priority_weight, scale_factor, throughput_list) in list_jobs:
-    #     weight = 1.0/scale_factor
-    #     if biased_toward_lower_norm_eff_thru:
-    #         weight *= bias_coeff[jid]
-    #     if priority_aware:
-    #         weight *= priority_weight
-    #     if throughput_aware:
-    #         assert False
-    #         coeff = np.power(constants.SPLIT_CONST, throughput_list) * (throughput_list >= constants.O_epsilon)
-    #         coeff /= np.sum(coeff)
-    #         weight *= coeff  # * (np.sum(throughput_list) / throughput_list)
-    #         np.nan_to_num(weight, posinf=0, neginf=0, copy=False)
-    #
-    #     split_ratio = split_ratio_mapping[jid] * num_tokens * weight
-    #     scale_data_list[last_id: last_id + num_gpu_types] = split_ratio * scale_factor
-    #     last_id += num_gpu_types
-    #     scale_data_list[last_id: last_id + num_gpu_types] = split_ratio
-    #     last_id += num_gpu_types
-    #
-    #     sub_jid_list = jid_to_sub_jid_mapping[jid]
-    #     weight_matrix[sub_jid_list] = split_ratio
 
     weight_matrix = split_ratio_mapping.flatten() * bias_coeff
     scale_data_list_1 = weight_matrix
@@ -74,11 +45,12 @@ def get_rates(problem: Problem, num_iter_approx_water, num_iter_bet, normalized_
 
     list_jobs = problem.sparse_job_list
     num_gpu_types = len(problem.gpu_list)
-    num_tokens = num_gpu_types * 1
+    num_tokens = num_gpu_types
 
     bias_allocation_weight = None
     if biased_toward_lower_norm_eff_thru:
         bias_allocation_weight = np.ones(len(list_jobs))
+
     output = waterfilling_utils.get_routing_matrix(problem, scale_factor_vector=scale_factor_vector,
                                                    priority_aware=False, throughput_aware=False, return_details=True)
     scale_matrix, row_list, column_list, capacity_vector, jid_to_sub_jid_mapping, num_rows, num_sub_jobs = output
@@ -122,7 +94,6 @@ def get_rates(problem: Problem, num_iter_approx_water, num_iter_bet, normalized_
             non_zero_indices = scale_matrix.indices[start:stop]
             _apply_congestion(scale_matrix.data[start:stop], per_job_allocation, non_zero_indices,
                               capacity_vector[gid], update_rate=True)
-            # time_cong += time
             idx += 1
 
         final_job_allocation = per_job_allocation * weight_matrix

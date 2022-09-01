@@ -26,26 +26,6 @@ def get_homogeneous_routing_matrix(problem: Problem, scale_factor_vector=None, r
     sub_jid = num_jobs * num_gpu_types
     max_gpu_id = num_gpu_types + num_jobs
 
-    # row_list = np.empty(num_gpu_types * 2 * num_jobs)
-    # column_list = np.empty(num_gpu_types * 2 * num_jobs)
-    # scale_factor_data_list = np.empty(num_gpu_types * 2 * num_jobs)
-    # jid_to_sub_jid_mapping = np.empty((num_jobs, num_gpu_types), dtype=np.int64)
-    # np_idx = 0
-    # for jid, (priority_weight, scale_factor, throughput_list) in list_jobs:
-    #     row_list[np_idx:np_idx + num_gpu_types] = np.arange(num_gpu_types, dtype=np.int32)
-    #     column_list[np_idx:np_idx + num_gpu_types] = np.arange(sub_jid, sub_jid + num_gpu_types)
-    #     scale_factor_data_list[np_idx:np_idx + num_gpu_types] = scale_factor
-    #     np_idx += num_gpu_types
-    #
-    #     column_list[np_idx: np_idx + num_gpu_types] = np.arange(sub_jid, sub_jid + num_gpu_types)
-    #     row_list[np_idx: np_idx + num_gpu_types] = max_gpu_id
-    #     scale_factor_data_list[np_idx:np_idx + num_gpu_types] = 1
-    #     np_idx += num_gpu_types
-    #
-    #     jid_to_sub_jid_mapping[jid] = np.arange(sub_jid, sub_jid + num_gpu_types)
-    #     sub_jid += num_gpu_types
-    #     capacity_vector[max_gpu_id] = 1
-    #     max_gpu_id += 1
     row_list_1 = np.tile(np.arange(num_gpu_types, dtype=np.int32), reps=num_jobs)
     column_list_1 = np.arange(sub_jid)
     scale_list_1 = scale_factor_vector.flatten()
@@ -74,6 +54,34 @@ def get_homogeneous_routing_matrix(problem: Problem, scale_factor_vector=None, r
 
 
 def get_heterogeneous_routing_matrix(problem: Problem, priority_aware=False, throughput_aware=False):
+    output_v = get_vectorized_characteristics(problem)
+    normalized_throughput_coeff, throughput_coeff, scale_factor_vector, priority_vector = output_v
+    weight_matrix = np.ones_like(throughput_coeff.flatten())
+    num_jobs = len(problem.sparse_job_list)
+
+    output = get_routing_matrix(problem, scale_factor_vector=scale_factor_vector,
+                                priority_aware=False, throughput_aware=False, return_details=True)
+    scale_matrix, row_list, column_list, capacity_vector, jid_to_sub_jid_mapping, num_rows, num_sub_jobs = output
+
+    if priority_aware:
+        weight_matrix *= priority_vector.flatten()
+
+    if throughput_aware:
+        coeff = np.power(constants.SPLIT_CONST, throughput_coeff) * (throughput_coeff >= constants.O_epsilon)
+        coeff /= np.add.reduce(coeff, axis=1).reshape(num_jobs, -1)
+        np.nan_to_num(coeff, posinf=0, neginf=0, copy=False)
+        weight_matrix *= coeff.flatten()
+
+    scale_data_list_1 = weight_matrix
+    weight_matrix = weight_matrix / scale_factor_vector.flatten()
+    scale_data_list_2 = weight_matrix
+    scale_data_list = np.concatenate((scale_data_list_1, scale_data_list_2))
+
+    scale_matrix = csr_matrix((scale_data_list, (row_list, column_list)),
+                              shape=(num_rows, num_sub_jobs))
+    return scale_matrix, weight_matrix, capacity_vector, jid_to_sub_jid_mapping, num_sub_jobs
+
+def get_heterogeneous_routing_matrix_1(problem: Problem, priority_aware=False, throughput_aware=False):
     list_jobs = problem.sparse_job_list
     gpu_cap_vector = problem.capacity_vector
     jid_to_sub_jid_mapping = dict()
@@ -99,7 +107,8 @@ def get_heterogeneous_routing_matrix(problem: Problem, priority_aware=False, thr
             coeff /= np.sum(coeff)
             weight *= coeff #* (np.sum(throughput_list) / throughput_list)
             np.nan_to_num(weight, posinf=0, neginf=0, copy=False)
-        scale_factor_data_list[np_idx:np_idx + num_gpu_types] = scale_factor * weight
+        scale_factor_data_list[np_idx:np_idx + num_gpu_types] = weight
+        weight /= scale_factor
         np_idx += num_gpu_types
 
         column_list[np_idx: np_idx + num_gpu_types] = np.arange(sub_jid, sub_jid + num_gpu_types)
