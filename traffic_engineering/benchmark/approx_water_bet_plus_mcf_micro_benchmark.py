@@ -86,22 +86,50 @@ min_beta_list = [
 ]
 min_epsilon_list = [
     1e-2,
-    # 1e-4,
-    # 1e-6,
+    1e-4,
+    1e-6,
     # 1e-8
 ]
-num_bin_list = [
-    # 2,
-    3,
-    4,
-    5,
-    7,
-    # 10,
-    # 12,
-    # 15,
-    # 20
-    "SWAN"
-]
+# num_bin_list = [
+#     # 2,
+#     3,
+#     4,
+#     5,
+#     7,
+#     # 10,
+#     # 12,
+#     # 15,
+#     # 20
+#     "SWAN"
+# ]
+topology_to_num_bin_list = {
+    'Uninett2010.graphml': [
+        4,
+        5,
+    ],
+    'Cogentco.graphml': [
+        5,
+        7,
+        "SWAN"
+    ],
+    'GtsCe.graphml': [
+        5,
+        "SWAN"
+    ],
+    'UsCarrier.graphml': [
+        7,
+        "SWAN"
+    ],
+    'Colt.graphml': [
+        7,
+        "SWAN"
+    ],
+    'TataNld.graphml': [
+        4,
+        7,
+        "SWAN"
+    ],
+}
 k_list = [
     1,
     # 10,
@@ -137,6 +165,7 @@ for num_paths in num_path_list:
                                                                                 base_split=base_split,
                                                                                 split_type=split_type)
             path_dict, path_edge_idx_mapping, path_path_len_mapping, path_total_path_len_mapping, path_split_ratio_mapping = path_output
+            num_bin_list = topology_to_num_bin_list[topo_name]
 
             for selected_fidx in fnames_idx:
                 file_name = fnames[selected_fidx]
