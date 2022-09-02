@@ -79,15 +79,15 @@ grb_method_list = [
 ]
 min_beta_list = [
     0,
-    # 1e-2,
-    # 1e-4,
+    1e-2,
+    1e-4,
     # 1e-6,
     # 1e-8
 ]
 min_epsilon_list = [
     1e-2,
-    1e-4,
-    1e-6,
+    # 1e-4,
+    # 1e-6,
     # 1e-8
 ]
 # num_bin_list = [
@@ -105,34 +105,36 @@ min_epsilon_list = [
 topology_to_num_bin_list = {
     'Uninett2010.graphml': [
         4,
-        5,
+        # 5,
     ],
     'Cogentco.graphml': [
-        5,
+        # 5,
         7,
-        "SWAN"
+        # "SWAN"
     ],
     'GtsCe.graphml': [
         5,
-        "SWAN"
+        # "SWAN"
     ],
     'UsCarrier.graphml': [
         7,
-        "SWAN"
+        # "SWAN"
     ],
     'Colt.graphml': [
         7,
-        "SWAN"
+        "SWAN",
+        10,
+        12,
     ],
     'TataNld.graphml': [
-        4,
+        # 4,
         7,
-        "SWAN"
+        # "SWAN"
     ],
 }
 k_list = [
     1,
-    # 10,
+    10,
     # 100
 ]
 
