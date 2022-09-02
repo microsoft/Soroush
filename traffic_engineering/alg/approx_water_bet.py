@@ -152,7 +152,6 @@ def _apply_congestion(routing_matrix, flow_rate, non_zeros_fids, link_cap, updat
     if np.add.reduce(flow_rate_on_link) <= link_cap or flow_rate_on_link.shape[0] == 0:
         return np.inf
     mask = np.arange(flow_rate_on_link.shape[0])
-    # bottleneck_arr = flow_bottleneck_arr[non_zeros_fids]
     while mask.shape[0]:
         num_flows = np.add.reduce(routing_matrix[mask])
         if num_flows == 0:
@@ -162,12 +161,10 @@ def _apply_congestion(routing_matrix, flow_rate, non_zeros_fids, link_cap, updat
         under_flows = (flow_rate_on_link[mask] >= allocated_rates)
         if np.logical_and.reduce(under_flows):
             flow_rate_on_link[mask] = allocated_rates
-            # bottleneck_arr[mask] = lid
             break
         else:
             link_cap -= flow_rate_on_link[mask] @ (1 - under_flows)
             mask = np.compress(under_flows, mask)
     if update_rate:
         flow_rate[non_zeros_fids] = flow_rate_on_link
-        # flow_bottleneck_arr[non_zeros_fids] = bottleneck_arr
     return fair_share
