@@ -99,7 +99,8 @@ def get_rates(problem: problem.Problem, paths, path_edge_idx_mapping, path_path_
         else:
             dur = (((checkpoint2 - checkpoint1).total_seconds(), (checkpoint3 - checkpoint2).total_seconds()), approx_dur, opt_detailed_dur)
     else:
-        output = output[0]
+        if not all_satisfied:
+            output = output[0]
         dur = (datetime.now() - st_time).total_seconds()
 
     extract_rate_st_time = datetime.now()

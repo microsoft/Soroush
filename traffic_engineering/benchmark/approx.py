@@ -40,6 +40,7 @@ def get_rates(approach, problem, path_output, num_paths_per_flow, num_approx_ite
         # path_split_ratio_mapping, num_paths_per_flow, num_iter_approx_water, num_iter_bet, link_cap,
         # mcf_grb_method = 2, num_bins = 5, min_beta = 1e-4, min_epsilon = 1e-2, k = 1, alpha = 0, link_cap_scale_factor = 1,
         # break_down = False, biased_toward_low_flow_rate = False, biased_alpha = None
+        min_eff_dur = np.inf
         min_dur = np.inf
         min_run_time_dict = None
         min_fid_to_flow_rate_mapping = None
@@ -57,8 +58,13 @@ def get_rates(approach, problem, path_output, num_paths_per_flow, num_approx_ite
                                                                                                k=k,
                                                                                                alpha=alpha,
                                                                                                link_cap_scale_factor=link_cap_scale_factor)
-            if dur < min_dur:
-                print(f"=== updating min_dur from {min_dur} to {dur}")
+            eff_dur = 0
+            for name in import_dur:
+                eff_dur += run_time_dict[name]
+
+            if eff_dur < min_eff_dur:
+                print(f"=== updating eff_dur from {min_eff_dur} to {eff_dur}")
+                min_eff_dur = eff_dur
                 min_dur = dur
                 min_run_time_dict = run_time_dict
                 min_fid_to_flow_rate_mapping = fid_to_flow_rate_mapping
@@ -124,6 +130,8 @@ TOPOLOGY_TO_APPROX_BET_MCF_PARAMS = {
     'TataNld.graphml': (15, 1e-2, 1e-2, 1, 1000),
     # 'Kdl.graphml',
 }
+
+import_dur = ["computation", "solver_time_equi_depth"]
 
 for topo_name in TOPO_NAME_LIST:
     assert topo_name in TOPOLOGY_TO_APPROX_BET_MCF_PARAMS
