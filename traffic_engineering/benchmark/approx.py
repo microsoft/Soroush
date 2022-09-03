@@ -11,9 +11,8 @@ from utilities import shortest_paths, constants
 from utilities import utils
 from ncflow.lib.problem import Problem
 
-# problem: Problem, num_paths_per_flow, num_iter_approx_water, link_cap, path_characteristics=None,
-#               path_edge_idx_mapping=None, path_path_len_mapping=None, break_down=False
-def get_rates(approach, problem, path_output, num_paths_per_flow, num_approx_iter, num_bet_iter, link_cap):
+def get_rates(approach, problem, path_output, num_paths_per_flow, num_approx_iter, num_bet_iter, link_cap,
+              mcf_grb_method=2, num_bins=5, min_beta=1e-4, min_epsilon=1e-2, k=1, alpha=0, link_cap_scale_factor=1):
     path_dict, path_edge_idx_mapping, path_path_len_mapping, path_total_path_len_mapping, path_split_ratio_mapping = path_output
     if approach == constants.APPROX:
         fid_to_flow_rate_mapping, dur, run_time_dict = approx_waterfilling.get_rates(problem, num_paths_per_flow,
@@ -38,13 +37,36 @@ def get_rates(approach, problem, path_output, num_paths_per_flow, num_approx_ite
                                                                                      bias_toward_low_flow_rate=False)
     elif approach == constants.APPROX_BET_MCF:
         # problem: problem.Problem, paths, path_edge_idx_mapping, path_path_len_mapping, path_total_path_len_mapping,
-        # path_split_ratio_mapping, num_paths_per_flow, num_iter_approx_water, num_iter_bet, link_cap, break_down = False,
-        # biased_toward_low_flow_rate = False, biased_alpha = None):
-        fid_to_flow_rate_mapping, dur = approx_water_bet_plus_mcf.get_rates(problem, path_dict, path_edge_idx_mapping,
-                                                                            path_path_len_mapping, path_total_path_len_mapping,
-                                                                            path_split_ratio_mapping, num_paths_per_flow,
-                                                                            num_iter_approx_water=num_approx_iter,
-                                                                            num_iter_bet=num_bet_iter, link_cap=link_cap)
+        # path_split_ratio_mapping, num_paths_per_flow, num_iter_approx_water, num_iter_bet, link_cap,
+        # mcf_grb_method = 2, num_bins = 5, min_beta = 1e-4, min_epsilon = 1e-2, k = 1, alpha = 0, link_cap_scale_factor = 1,
+        # break_down = False, biased_toward_low_flow_rate = False, biased_alpha = None
+        min_dur = np.inf
+        min_run_time_dict = None
+        min_fid_to_flow_rate_mapping = None
+        for i in range(num_repeats):
+            fid_to_flow_rate_mapping, dur, run_time_dict = approx_water_bet_plus_mcf.get_rates(problem, path_dict, path_edge_idx_mapping,
+                                                                                               path_path_len_mapping, path_total_path_len_mapping,
+                                                                                               path_split_ratio_mapping, num_paths_per_flow,
+                                                                                               num_iter_approx_water=num_approx_iter,
+                                                                                               num_iter_bet=num_bet_iter,
+                                                                                               link_cap=link_cap,
+                                                                                               mcf_grb_method=mcf_grb_method,
+                                                                                               num_bins=num_bins,
+                                                                                               min_beta=min_beta,
+                                                                                               min_epsilon=min_epsilon,
+                                                                                               k=k,
+                                                                                               alpha=alpha,
+                                                                                               link_cap_scale_factor=link_cap_scale_factor)
+            if dur < min_dur:
+                print(f"=== updating min_dur from {min_dur} to {dur}")
+                min_dur = dur
+                min_run_time_dict = run_time_dict
+                min_fid_to_flow_rate_mapping = fid_to_flow_rate_mapping
+
+        run_time_dict = min_run_time_dict
+        dur = min_dur
+        fid_to_flow_rate_mapping = min_fid_to_flow_rate_mapping
+
     elif approach == constants.APPROX_BET_MCF_BIASED:
         fid_to_flow_rate_mapping, dur = approx_water_bet_plus_mcf.get_rates(problem, path_dict, path_edge_idx_mapping,
                                                                             path_path_len_mapping, path_total_path_len_mapping,
@@ -78,10 +100,11 @@ TOPO_NAME_LIST = [
 # APPROACH_LIST = [constants.APPROX_BET, constants.APPROX_BET_MCF]
 APPROACH_LIST = [
     # constants.APPROX,
-    constants.APPROX_BET,
-    # constants.APPROX_BET_MCF,
+    # constants.APPROX_BET,
+    constants.APPROX_BET_MCF,
 ]
 # num_path_list = [4, 16]
+mcf_grb_method = 2
 num_path_list = [16]
 num_iter_approx_list = [1]
 num_iter_bet_list = [10]
@@ -89,6 +112,21 @@ link_cap = 1000.0
 log_dir = "../outputs"
 base_split = 0.9
 split_type = constants.EXPONENTIAL_DECAY
+num_repeats = 3
+
+# (num_bins, min_epsilon, min_beta, k, link_cap_scale_factor)
+TOPOLOGY_TO_APPROX_BET_MCF_PARAMS = {
+    'Uninett2010.graphml': (4, 1e-2, 1e-2, 1, 1000),
+    'Cogentco.graphml': (15, 1e-2, 1e-2, 1, 1000),
+    'GtsCe.graphml': (12, 1e-2, 1e-2, 1, 1000),
+    'UsCarrier.graphml': (7, 1e-2, 1e-2, 1, 1000),
+    'Colt.graphml': (10, 1e-2, 1e-2, 1, 1000),
+    'TataNld.graphml': (15, 1e-2, 1e-2, 1, 1000),
+    # 'Kdl.graphml',
+}
+
+for topo_name in TOPO_NAME_LIST:
+    assert topo_name in TOPOLOGY_TO_APPROX_BET_MCF_PARAMS
 
 
 for approach in APPROACH_LIST:
@@ -118,8 +156,15 @@ for approach in APPROACH_LIST:
                             per_flow_log_file_name = file_name[4].split("/")[-1][:-4] + f"_num_paths_{num_paths}"
                             per_flow_log_file_name += f"_iter_approx_{num_iter_approx}_iter_bet_{num_iter_bet}"
                             print("=" * 5, file_name, per_flow_log_file_name, "=" * 5)
+                            num_bins, min_epsilon, min_beta, k, link_cap_scale_factor = TOPOLOGY_TO_APPROX_BET_MCF_PARAMS[topo_name]
                             approx_output = get_rates(approach, problem, path_output, num_paths,
-                                                                      num_iter_approx, num_iter_bet, link_cap)
+                                                      num_iter_approx, num_iter_bet, link_cap,
+                                                      mcf_grb_method=mcf_grb_method,
+                                                      num_bins=num_bins,
+                                                      min_beta=min_beta,
+                                                      min_epsilon=min_epsilon,
+                                                      k=k,
+                                                      link_cap_scale_factor=link_cap_scale_factor)
                             fid_to_flow_rate_mapping, dur, run_time_dict = approx_output
                             total_flow = 0
                             for (src, dst) in fid_to_flow_rate_mapping:
