@@ -46,56 +46,56 @@ def parse_line(line, dir_name, approach_name, is_approx, approach_to_valid_for_r
             num_paths, num_iter_approx, num_iter_bet, total_flow, run_time, detailed_per_flow_file = other_param.split(",")
             num_iter = (num_iter_approx, num_iter_bet)
         print(detailed_per_flow_file)
-        fid_to_rate_mapping = utils.read_pickle_file(flow_rate_file_name.format(detailed_per_flow_file[1:-1]))
+        fid_to_rate_mapping_file_name = flow_rate_file_name.format(detailed_per_flow_file[1:-1])
         run_time_dict = utils.read_pickle_file(run_time_dict_file_name.format(detailed_per_flow_file[1:-1]))
         output_run_time = get_output_run_time(approach_name, run_time_dict, approach_to_valid_for_run_time)
-        return traffic_file, int(num_paths), num_iter, float(total_flow), output_run_time, fid_to_rate_mapping
+        return traffic_file, int(num_paths), num_iter, float(total_flow), output_run_time, fid_to_rate_mapping_file_name
 
     num_paths, total_flow, run_time, detailed_per_flow_file = other_param.split(",")
-    fid_to_rate_mapping = utils.read_pickle_file(flow_rate_file_name.format(detailed_per_flow_file[:-1]))
+    fid_to_rate_mapping_file_name = flow_rate_file_name.format(detailed_per_flow_file[:-1])
     run_time_dict = utils.read_pickle_file(run_time_dict_file_name.format(detailed_per_flow_file[:-1]))
     output_run_time = get_output_run_time(approach_name, run_time_dict, approach_to_valid_for_run_time)
-    return traffic_file, int(num_paths), float(total_flow), output_run_time, fid_to_rate_mapping
+    return traffic_file, int(num_paths), float(total_flow), output_run_time, fid_to_rate_mapping_file_name
 
 
 def get_total_thru_run_time_dict_approx(approach_name, dir_name, valid_topo_traffic_list, approach_to_valid_for_run_time):
     total_thru_dict = defaultdict(lambda: defaultdict(dict))
     run_time_dict = defaultdict(lambda: defaultdict(dict))
-    fid_to_flow_rate_mapping_dict = defaultdict(lambda: defaultdict(dict))
+    fid_to_flow_rate_mapping_fname_dict = defaultdict(lambda: defaultdict(dict))
     with open(dir_name + ".txt", "r") as fp:
         for l in fp.readlines():
             output_line = parse_line(l, dir_name, approach_name, True, approach_to_valid_for_run_time)
-            traffic_file, num_paths, num_iter, total_flow, run_time, fid_to_rate_mapping = output_line
+            traffic_file, num_paths, num_iter, total_flow, run_time, fid_to_rate_mapping_file_name = output_line
             if not is_topo_traffic_valid(traffic_file, valid_topo_traffic_list):
                 print(f"skipping ${traffic_file}$ either topo or traffic not valid!!")
                 continue
             total_thru_dict[num_paths][traffic_file][num_iter] = total_flow
             run_time_dict[num_paths][traffic_file][num_iter] = run_time
-            fid_to_flow_rate_mapping_dict[num_paths][traffic_file][num_iter] = fid_to_rate_mapping
-    return total_thru_dict, run_time_dict, fid_to_flow_rate_mapping_dict
+            fid_to_flow_rate_mapping_fname_dict[num_paths][traffic_file][num_iter] = fid_to_rate_mapping_file_name
+    return total_thru_dict, run_time_dict, fid_to_flow_rate_mapping_fname_dict
 
 
 def get_total_thru_run_time_dict(approach_name, dir_name, valid_topo_traffic_list, approach_to_valid_for_run_time):
     total_thru_dict = defaultdict(dict)
     run_time_dict = defaultdict(dict)
-    fid_to_flow_rate_mapping_dict = defaultdict(dict)
+    fid_to_flow_rate_mapping_fname_dict = defaultdict(dict)
     with open(dir_name + ".txt", "r") as fp:
         for l in fp.readlines():
             output_line = parse_line(l, dir_name, approach_name, False, approach_to_valid_for_run_time)
-            traffic_file, num_paths, total_flow, run_time, fid_to_rate_mapping = output_line
+            traffic_file, num_paths, total_flow, run_time, fid_to_rate_mapping_file_name = output_line
             if not is_topo_traffic_valid(traffic_file, valid_topo_traffic_list):
                 print(f"skipping either topo or traffic not valid!!")
                 continue
             total_thru_dict[num_paths][traffic_file] = total_flow
             run_time_dict[num_paths][traffic_file] = run_time
-            fid_to_flow_rate_mapping_dict[num_paths][traffic_file] = fid_to_rate_mapping
-    return total_thru_dict, run_time_dict, fid_to_flow_rate_mapping_dict
+            fid_to_flow_rate_mapping_fname_dict[num_paths][traffic_file] = fid_to_rate_mapping_file_name
+    return total_thru_dict, run_time_dict, fid_to_flow_rate_mapping_fname_dict
 
 
 def read_rate_log_file(approach, dir_list, valid_topo_traffic_list, approach_to_valid_for_run_time):
     approach_to_total_thru_mapping = defaultdict(dict)
     approach_to_run_time_mapping = defaultdict(dict)
-    approach_to_fid_to_rate_mapping = defaultdict(dict)
+    approach_to_fid_to_rate_fname_mapping = defaultdict(dict)
     for dir_name, is_approx in dir_list:
         if is_approx:
             total_thru_run_time_dict = get_total_thru_run_time_dict_approx(approach, dir_name,
@@ -108,12 +108,12 @@ def read_rate_log_file(approach, dir_list, valid_topo_traffic_list, approach_to_
                                 num_iter not in approach_to_total_thru_mapping[num_paths][traffic_file]:
                             approach_to_total_thru_mapping[num_paths][traffic_file] = dict()
                             approach_to_run_time_mapping[num_paths][traffic_file] = dict()
-                            approach_to_fid_to_rate_mapping[num_paths][traffic_file] = dict()
+                            approach_to_fid_to_rate_fname_mapping[num_paths][traffic_file] = dict()
                         approach_to_total_thru_mapping[num_paths][traffic_file][num_iter] = \
                             total_thru_run_time_dict[0][num_paths][traffic_file][num_iter]
                         approach_to_run_time_mapping[num_paths][traffic_file][num_iter] = \
                             total_thru_run_time_dict[1][num_paths][traffic_file][num_iter]
-                        approach_to_fid_to_rate_mapping[num_paths][traffic_file][num_iter] = \
+                        approach_to_fid_to_rate_fname_mapping[num_paths][traffic_file][num_iter] = \
                             total_thru_run_time_dict[2][num_paths][traffic_file][num_iter]
         else:
             total_thru_run_time_dict = get_total_thru_run_time_dict(approach, dir_name,
@@ -125,9 +125,9 @@ def read_rate_log_file(approach, dir_list, valid_topo_traffic_list, approach_to_
                         total_thru_run_time_dict[0][num_paths][traffic_file]
                     approach_to_run_time_mapping[num_paths][traffic_file] = \
                         total_thru_run_time_dict[1][num_paths][traffic_file]
-                    approach_to_fid_to_rate_mapping[num_paths][traffic_file] = \
+                    approach_to_fid_to_rate_fname_mapping[num_paths][traffic_file] = \
                         total_thru_run_time_dict[2][num_paths][traffic_file]
-    return approach_to_total_thru_mapping, approach_to_run_time_mapping, approach_to_fid_to_rate_mapping
+    return approach_to_total_thru_mapping, approach_to_run_time_mapping, approach_to_fid_to_rate_fname_mapping
 
 
 def compute_fairness_no(baseline_mapping, approach_mapping, theta_fairness):

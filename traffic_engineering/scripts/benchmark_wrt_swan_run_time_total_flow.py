@@ -167,14 +167,14 @@ plt.rcParams.update(params)
 
 approach_to_total_thru_mapping = defaultdict(lambda: defaultdict(dict))
 approach_to_run_time_mapping = defaultdict(lambda: defaultdict(dict))
-approach_to_fid_to_rate_mapping = defaultdict(lambda: defaultdict(dict))
+approach_to_fid_to_rate_fname_mapping = defaultdict(lambda: defaultdict(dict))
 for approach, dir_list in approach_to_log_dir_mapping.items():
     output = benchmark_plot_utils.read_rate_log_file(approach, dir_list,
                                                      valid_topo_traffic_list=TOPO_TM_MODEL_COMB,
                                                      approach_to_valid_for_run_time=approach_to_valid_for_run_time)
     approach_to_total_thru_mapping[approach] = output[0]
     approach_to_run_time_mapping[approach] = output[1]
-    approach_to_fid_to_rate_mapping[approach] = output[2]
+    approach_to_fid_to_rate_fname_mapping[approach] = output[2]
 
 
 
@@ -288,24 +288,26 @@ for num_paths in NUM_PATH_LIST:
     plt.savefig(fig_dir + f"speedup_relative_swan_{num_paths}_{utils.get_fid()}.png", bbox_inches='tight', format="png")
 
 
-fairness_baseline_dict = approach_to_fid_to_rate_mapping[fairness_baseline]
+fairness_baseline_fname_dict = approach_to_fid_to_rate_fname_mapping[fairness_baseline]
 
 print("======================== Fairness Analysis")
 for num_paths in NUM_PATH_LIST:
     approach_to_fairness = defaultdict(list)
-    for file_name in fairness_baseline_dict[num_paths]:
-        baseline_fid_to_rate_mapping = fairness_baseline_dict[num_paths][file_name]
+    for file_name in fairness_baseline_fname_dict[num_paths]:
+        baseline_fid_to_rate_mapping = utils.read_pickle_file(fairness_baseline_fname_dict[num_paths][file_name])
         for approach in approach_to_log_dir_mapping:
             print(f"=== File Name {file_name} num paths {num_paths} approach {approach}")
             is_approx = approach_to_log_dir_mapping[approach][0][1]
             if is_approx:
-                for num_iter, fid_to_rate_mapping in approach_to_fid_to_rate_mapping[approach][num_paths][file_name].items():
+                for num_iter, fid_to_rate_mapping_fname in approach_to_fid_to_rate_fname_mapping[approach][num_paths][file_name].items():
+                    fid_to_rate_mapping = utils.read_pickle_file(fid_to_rate_mapping_fname)
                     fairness_no = benchmark_plot_utils.compute_fairness_no(baseline_fid_to_rate_mapping,
                                                                            fid_to_rate_mapping, theta_fairness)
                     approach_to_fairness[(approach, num_iter)].append(fairness_no)
             else:
+                fid_to_rate_mapping = utils.read_pickle_file(approach_to_fid_to_rate_fname_mapping[approach][num_paths][file_name])
                 approach_to_fairness[(approach, 0)].append(benchmark_plot_utils.compute_fairness_no(baseline_fid_to_rate_mapping,
-                                                                                                    approach_to_fid_to_rate_mapping[approach][num_paths][file_name],
+                                                                                                    fid_to_rate_mapping,
                                                                                                     theta_fairness))
 
     plt.figure(figsize=(9, 5))
