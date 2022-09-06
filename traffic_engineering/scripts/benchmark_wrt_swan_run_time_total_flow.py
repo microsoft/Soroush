@@ -41,6 +41,7 @@ approach_to_log_dir_mapping = {
     #                  ("../outputs/swan_2022_05_21_08_57_09_81eae09f", 0)],
     constants.APPROX: [("../outputs/approx(1)_2022_08_26_08_25_54_0691655a", 1)],
     constants.APPROX_BET: [("../outputs/approx(1)_bet_2022_08_27_01_50_46_4284934e", 1)],
+    constants.APPROX_BET_MCF: [("../outputs/approx(1)_bet(10)_mcf_2022_09_03_12_39_08_e0e2b482", 1)],
     constants.NEW_APPROX: [("../outputs/geometric_binner_2022_08_25_06_02_02_72f6231f", 0)],
     constants.DANNA: [("../outputs/danna_practical_2022_08_16_17_13_19_dc44cf7e", 0),
                       ("../outputs/danna_practical_2022_08_16_22_22_21_6afe1d48", 0)],
@@ -53,38 +54,48 @@ approach_to_log_dir_mapping = {
 approach_to_valid_for_run_time = {
     constants.ONE_WATERFILLING: [
         # "model",
-        "computation",
+        ("computation", False),
         # "extract_rate",
     ],
     constants.APPROX: [
         # "model",
-        "computation",
+        ("computation", False),
         # "extract_rate",
     ],
     constants.DANNA: [
         # "model",
-        "feasibility_total",
+        ("feasibility_total", False),
         # "feasibility_solver",
-        "mcf_total",
+        ("mcf_total", False),
         # "mcf_solver",
         # 'extract_rate',
     ],
     constants.SWAN: [
         # 'model',
-        'mcf_total',
+        ('mcf_total', False),
         # 'mcf_solver',
         # 'freeze_time'
     ],
     constants.NEW_APPROX: [
         # 'model',
         # 'extract_rate',
-        'mcf_solver',
+        ('mcf_solver', False),
     ],
     constants.APPROX_BET: [
         # "model",
-        "computation",
+        ("computation", False),
         # "extract_rate",
     ],
+    constants.APPROX_BET_MCF: [
+        # "model_approx_bet_p_mcf",
+        # "extract_rate_approx_bet_p_mcf",
+        # "model",
+        ("computation", False),
+        # "extract_rate",
+        # "model_equi_depth",
+        ("solver_time_equi_depth", True),
+        # "extract_rate_equi_depth",
+    ]
 }
 
 fig_dir = "../figs/"

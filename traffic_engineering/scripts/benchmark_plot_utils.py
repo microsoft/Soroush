@@ -20,7 +20,10 @@ def get_output_run_time(approach_name, run_time_dict, approach_to_valid_for_run_
         run_time = sum([r_time for _, r_time in run_time_dict.items()])
         return run_time
 
-    for time_name in approach_to_valid_for_run_time[approach_name]:
+    for time_name, is_optional in approach_to_valid_for_run_time[approach_name]:
+        if time_name not in run_time_dict:
+            assert is_optional
+            continue
         run_time += run_time_dict[time_name]
     return run_time
 

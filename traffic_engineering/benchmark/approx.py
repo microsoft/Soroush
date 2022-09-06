@@ -60,8 +60,9 @@ def get_rates(approach, problem, path_output, num_paths_per_flow, num_approx_ite
                                                                                                link_cap_scale_factor=link_cap_scale_factor)
             eff_dur = 0
             for name in import_dur:
-                eff_dur += run_time_dict[name]
-
+                if name in run_time_dict:
+                    eff_dur += run_time_dict[name]
+            assert eff_dur > 0
             if eff_dur < min_eff_dur:
                 print(f"=== updating eff_dur from {min_eff_dur} to {eff_dur}")
                 min_eff_dur = eff_dur
