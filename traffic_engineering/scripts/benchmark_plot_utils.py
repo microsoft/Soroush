@@ -29,7 +29,7 @@ def get_output_run_time(approach_name, run_time_dict, approach_to_valid_for_run_
     return run_time
 
 
-def parse_line(line, dir_name, approach_name, is_approx, approach_to_valid_for_run_time, topo_name_to_approx_param):
+def parse_line(line, dir_name, approach_name, is_approx, approach_to_valid_for_run_time, topo_name_to_approx_param=None):
     model_param, other_param = line.split(")")
     flow_rate_file_name = dir_name + "/{}_per_path_flow.pickle"
     run_time_dict_file_name = dir_name + "/{}_run_time_dict.pickle"
@@ -38,6 +38,7 @@ def parse_line(line, dir_name, approach_name, is_approx, approach_to_valid_for_r
     print(line, dir_name)
     topo_name, traffic_name, scale_factor, topo_file, traffic_file = model_param.split(", ")
     valid = True
+    desired_num_iter_approx, desired_num_iter_bet = topo_name_to_approx_param[topo_name]
 
     other_param = other_param[1:]
     if is_approx:
@@ -47,7 +48,7 @@ def parse_line(line, dir_name, approach_name, is_approx, approach_to_valid_for_r
         except ValueError:
             num_paths, num_iter_approx, num_iter_bet, total_flow, run_time, detailed_per_flow_file = other_param.split(",")
             num_iter = (num_iter_approx, num_iter_bet)
-            if (num_iter_approx, num_iter_bet) != topo_name_to_approx_param[topo_name]:
+            if int(num_iter_approx) != desired_num_iter_approx or int(num_iter_bet) != desired_num_iter_bet:
                 valid = False
             print(num_iter_approx, num_iter_bet)
         print(detailed_per_flow_file)

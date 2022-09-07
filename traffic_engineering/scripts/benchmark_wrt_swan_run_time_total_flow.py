@@ -130,12 +130,12 @@ TOPO_NAME_LIST = [
 ]
 
 APPROX_TOPO_NAME_TO_ITERATION = {
-    'Uninett2010.graphml': (1, 10),
-    'Cogentco.graphml': (1, 10),
-    'GtsCe.graphml': (1, 10),
-    'UsCarrier.graphml': (1, 20),
-    'Colt.graphml': (1, 10),
-    'TataNld.graphml': (1, 20),
+    "'Uninett2010.graphml'": (1, 10),
+    "'Cogentco.graphml'": (1, 10),
+    "'GtsCe.graphml'": (1, 10),
+    "'UsCarrier.graphml'": (1, 20),
+    "'Colt.graphml'": (1, 10),
+    "'TataNld.graphml'": (1, 20),
     # 'Kdl.graphml',
 }
 
