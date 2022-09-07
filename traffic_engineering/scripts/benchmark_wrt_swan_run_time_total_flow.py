@@ -297,9 +297,6 @@ run_time_baseline_dict = approach_to_run_time_mapping[run_time_baseline]
 for num_paths in NUM_PATH_LIST:
     approach_to_normalized_run_time = defaultdict(list)
     for file_name in run_time_baseline_dict[num_paths]:
-        scale_factor = float(file_name.split("/")[-1].split("_")[3])
-        if scale_factor > 6.9:
-            continue
         baseline_run_time = run_time_baseline_dict[num_paths][file_name]
         for approach in approach_to_log_dir_mapping:
             is_approx = approach_to_log_dir_mapping[approach][0][1]

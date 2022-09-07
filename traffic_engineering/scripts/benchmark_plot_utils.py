@@ -2,7 +2,7 @@ from collections import defaultdict
 
 import numpy as np
 
-from utilities import utils
+from utilities import utils, constants
 
 
 def is_topo_traffic_valid(fname, valid_topo_traffic_list):
@@ -38,17 +38,18 @@ def parse_line(line, dir_name, approach_name, is_approx, approach_to_valid_for_r
     print(line, dir_name)
     topo_name, traffic_name, scale_factor, topo_file, traffic_file = model_param.split(", ")
     valid = True
-    desired_num_iter_approx, desired_num_iter_bet = topo_name_to_approx_param[topo_name]
 
     other_param = other_param[1:]
     if is_approx:
+        desired_num_iter_approx, desired_num_iter_bet = topo_name_to_approx_param[topo_name]
         try:
             num_paths, num_iter_approx, total_flow, run_time, detailed_per_flow_file = other_param.split(",")
             num_iter = (num_iter_approx)
         except ValueError:
             num_paths, num_iter_approx, num_iter_bet, total_flow, run_time, detailed_per_flow_file = other_param.split(",")
             num_iter = (num_iter_approx, num_iter_bet)
-            if int(num_iter_approx) != desired_num_iter_approx or int(num_iter_bet) != desired_num_iter_bet:
+            if approach_name != constants.APPROX and \
+                    (int(num_iter_approx) != desired_num_iter_approx or int(num_iter_bet) != desired_num_iter_bet):
                 valid = False
             print(num_iter_approx, num_iter_bet)
         print(detailed_per_flow_file)
