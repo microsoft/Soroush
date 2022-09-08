@@ -267,7 +267,13 @@ for approach, dir_list in approach_to_log_dir_mapping.items():
 #                     if baseline_run_time < run_time:
 #                         print(file_name, run_time_baseline, baseline_run_time, approach, run_time, num_paths)
 
+log_dir = f"../outputs/processed_logs_{utils.get_fid()}/"
+utils.ensure_dir(log_dir)
+
 total_flow_baseline_dict = approach_to_total_thru_mapping[total_flow_baseline]
+utils.write_to_file_as_pickle(approach_to_total_thru_mapping,
+                              log_dir, log_dir + f"total_flow.pickle")
+
 for num_paths in NUM_PATH_LIST:
     approach_to_normalized_rate_mapping = defaultdict(list)
     for file_name in total_flow_baseline_dict[num_paths]:
@@ -275,7 +281,7 @@ for num_paths in NUM_PATH_LIST:
         for approach in approach_to_log_dir_mapping:
             is_approx = approach_to_log_dir_mapping[approach][0][1]
             # if is_approx:
-                # for num_iter, approx_rate in approach_to_total_thru_mapping[approach][num_paths][file_name].items():
+            # for num_iter, approx_rate in approach_to_total_thru_mapping[approach][num_paths][file_name].items():
             approach_to_normalized_rate_mapping[(approach, 0)].append(approach_to_total_thru_mapping[approach][num_paths][file_name] / baseline_rate)
             # else:
             #     approach_to_normalized_rate_mapping[(approach, 0)].append(approach_to_total_thru_mapping[approach][num_paths][file_name] / baseline_rate)
@@ -294,6 +300,8 @@ for num_paths in NUM_PATH_LIST:
 
 
 run_time_baseline_dict = approach_to_run_time_mapping[run_time_baseline]
+utils.write_to_file_as_pickle(approach_to_run_time_mapping,
+                              log_dir, log_dir + f"run_time.pickle")
 for num_paths in NUM_PATH_LIST:
     approach_to_normalized_run_time = defaultdict(list)
     for file_name in run_time_baseline_dict[num_paths]:
@@ -319,11 +327,13 @@ for num_paths in NUM_PATH_LIST:
     plt.xscale('log')
     plt.title(f"{num_paths} shortest paths")
     plt.savefig(fig_dir + f"speedup_relative_swan_{num_paths}_{utils.get_fid()}.png", bbox_inches='tight', format="png")
+    # utils.write_to_file_as_pickle(approach_to_normalized_run_time,  log_dir, log_dir + f"speed_up_wrt_{run_time_baseline}_num_paths_{num_paths}.pickle")
 
 
 fairness_baseline_fname_dict = approach_to_fid_to_rate_fname_mapping[fairness_baseline]
 
 print("======================== Fairness Analysis")
+approach_to_fairness_mapping = defaultdict(lambda: defaultdict(dict))
 for num_paths in NUM_PATH_LIST:
     approach_to_fairness = defaultdict(list)
     for file_name in fairness_baseline_fname_dict[num_paths]:
@@ -338,6 +348,7 @@ for num_paths in NUM_PATH_LIST:
             fairness_no = benchmark_plot_utils.compute_fairness_no(baseline_fid_to_rate_mapping,
                                                                    fid_to_rate_mapping, theta_fairness)
             approach_to_fairness[(approach, 0)].append(fairness_no)
+            approach_to_fairness_mapping[approach][num_paths][file_name] = fairness_no
             print(approach, fairness_no)
             # else:
             #     fid_to_rate_mapping = utils.read_pickle_file(approach_to_fid_to_rate_fname_mapping[approach][num_paths][file_name])
@@ -356,4 +367,6 @@ for num_paths in NUM_PATH_LIST:
     plt.ylabel("Fraction of Scenarios")
     plt.title(f"{num_paths} shortest paths")
     plt.savefig(fig_dir + f"fairness_relative_danna_{num_paths}_{utils.get_fid()}.png", bbox_inches='tight', format="png")
+
+utils.write_to_file_as_pickle(approach_to_fairness_mapping,  log_dir, log_dir + f"fairness.pickle")
 
