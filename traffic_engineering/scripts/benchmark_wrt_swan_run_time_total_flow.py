@@ -333,7 +333,7 @@ for num_paths in NUM_PATH_LIST:
 fairness_baseline_fname_dict = approach_to_fid_to_rate_fname_mapping[fairness_baseline]
 
 print("======================== Fairness Analysis")
-approach_to_fairness_mapping = defaultdict(lambda: defaultdict(dict))
+approach_to_fairness_mapping = dict()
 for num_paths in NUM_PATH_LIST:
     approach_to_fairness = defaultdict(list)
     for file_name in fairness_baseline_fname_dict[num_paths]:
@@ -348,6 +348,10 @@ for num_paths in NUM_PATH_LIST:
             fairness_no = benchmark_plot_utils.compute_fairness_no(baseline_fid_to_rate_mapping,
                                                                    fid_to_rate_mapping, theta_fairness)
             approach_to_fairness[(approach, 0)].append(fairness_no)
+            if approach not in approach_to_fairness_mapping:
+                approach_to_fairness_mapping[approach] = dict()
+            if num_paths not in approach_to_fairness_mapping[approach]:
+                approach_to_fairness_mapping[approach][num_paths] = dict()
             approach_to_fairness_mapping[approach][num_paths][file_name] = fairness_no
             print(approach, fairness_no)
             # else:

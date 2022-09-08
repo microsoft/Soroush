@@ -67,9 +67,9 @@ def parse_line(line, dir_name, approach_name, is_approx, approach_to_valid_for_r
 
 def get_total_thru_run_time_dict_approx(approach_name, dir_name, valid_topo_traffic_list, approach_to_valid_for_run_time,
                                         topo_name_to_approx_param):
-    total_thru_dict = defaultdict(lambda: defaultdict(dict))
-    run_time_dict = defaultdict(lambda: defaultdict(dict))
-    fid_to_flow_rate_mapping_fname_dict = defaultdict(lambda: defaultdict(dict))
+    total_thru_dict = dict()
+    run_time_dict = dict()
+    fid_to_flow_rate_mapping_fname_dict = dict()
     with open(dir_name + ".txt", "r") as fp:
         for l in fp.readlines():
             output_line = parse_line(l, dir_name, approach_name, True, approach_to_valid_for_run_time, topo_name_to_approx_param)
@@ -77,6 +77,14 @@ def get_total_thru_run_time_dict_approx(approach_name, dir_name, valid_topo_traf
             if not is_topo_traffic_valid(traffic_file, valid_topo_traffic_list) or not valid:
                 print(f"skipping ${traffic_file}$ either topo or traffic not valid!!")
                 continue
+            if num_paths not in total_thru_dict:
+                total_thru_dict[num_paths] = dict()
+                run_time_dict[num_paths] = dict()
+                fid_to_flow_rate_mapping_fname_dict[num_paths] = dict()
+            if traffic_file not in total_thru_dict[num_paths]:
+                total_thru_dict[num_paths][traffic_file] = dict()
+                run_time_dict[num_paths][traffic_file] = dict()
+                fid_to_flow_rate_mapping_fname_dict[num_paths][traffic_file] = dict()
             total_thru_dict[num_paths][traffic_file][num_iter] = total_flow
             run_time_dict[num_paths][traffic_file][num_iter] = run_time
             fid_to_flow_rate_mapping_fname_dict[num_paths][traffic_file][num_iter] = fid_to_rate_mapping_file_name
@@ -84,8 +92,8 @@ def get_total_thru_run_time_dict_approx(approach_name, dir_name, valid_topo_traf
 
 
 def get_total_thru_run_time_dict(approach_name, dir_name, valid_topo_traffic_list, approach_to_valid_for_run_time):
-    total_thru_dict = defaultdict(dict)
-    run_time_dict = defaultdict(dict)
+    total_thru_dict = dict()
+    run_time_dict = dict()
     fid_to_flow_rate_mapping_fname_dict = defaultdict(dict)
     with open(dir_name + ".txt", "r") as fp:
         for l in fp.readlines():
@@ -94,6 +102,10 @@ def get_total_thru_run_time_dict(approach_name, dir_name, valid_topo_traffic_lis
             if not is_topo_traffic_valid(traffic_file, valid_topo_traffic_list):
                 print(f"skipping either topo or traffic not valid!!")
                 continue
+            if num_paths not in total_thru_dict:
+                total_thru_dict[num_paths] = dict()
+                run_time_dict[num_paths] = dict()
+                fid_to_flow_rate_mapping_fname_dict[num_paths] = dict()
             total_thru_dict[num_paths][traffic_file] = total_flow
             run_time_dict[num_paths][traffic_file] = run_time
             fid_to_flow_rate_mapping_fname_dict[num_paths][traffic_file] = fid_to_rate_mapping_file_name
