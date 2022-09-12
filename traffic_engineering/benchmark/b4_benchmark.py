@@ -6,6 +6,7 @@ import numpy as np
 sys.path.insert(0, os.path.abspath(os.path.join(os.getcwd(), "./../")))
 
 from alg import b4_experience_w_global_software_wan as b4
+from alg import b4_extended as b4_plus
 from utilities import shortest_paths
 from utilities import utils
 from ncflow.lib.problem import Problem
@@ -32,10 +33,14 @@ feasibility_grb_method = 1
 mcf_grb_method = 1
 num_path_list = [16]
 link_cap = 1000.0
+use_b4_plus = True
+b4_class = b4
+if use_b4_plus:
+    b4_class = b4_plus
 log_dir = "../outputs"
 fid = utils.get_fid()
-log_file = f"../outputs/b4_{fid}.txt"
-log_folder_flows = f"../outputs/b4_{fid}/"
+log_file = f"../outputs/b4_{fid}_{use_b4_plus}.txt"
+log_folder_flows = f"../outputs/b4_{fid}_{use_b4_plus}/"
 U = 0
 
 for num_paths in num_path_list:
@@ -53,9 +58,9 @@ for num_paths in num_path_list:
                 utils.revise_list_commodities(problem)
                 per_flow_log_file_name = file_name[4].split("/")[-1][:-4] + f"_num_paths_{num_paths}"
                 print("=" * 5, file_name, per_flow_log_file_name, "=" * 5)
-                b4_output = b4.get_rates(problem, num_paths, link_cap,
-                                         path_edge_idx_mapping=path_edge_idx_mapping,
-                                         path_path_len_mapping=path_path_len_mapping)
+                b4_output = b4_class.get_rates(problem, num_paths, link_cap,
+                                               path_edge_idx_mapping=path_edge_idx_mapping,
+                                               ath_path_len_mapping=path_path_len_mapping)
                 b4_fid_to_per_path_rate, b4_dur, b4_run_time_dict = b4_output
 
                 b4_total_flow = 0
