@@ -49,7 +49,7 @@ def get_rates(problem: Problem, num_paths_per_flow, link_cap, path_characteristi
     iter_no = 0
     while np.any(which_sub_flow_active):
         iter_no += 1
-        print(f"============ {routing_matrix.shape}")
+        # print(f"============ {routing_matrix.shape}")
         reshaped_active_sub_flow = which_sub_flow_active.reshape(-1, )[np_sub_flow_list]
         num_flows_per_link = routing_matrix @ reshaped_active_sub_flow
         rem_fair_share = capacity_vector / num_flows_per_link
@@ -72,7 +72,7 @@ def get_rates(problem: Problem, num_paths_per_flow, link_cap, path_characteristi
             final_flow_rate[np_sub_flow_list] += rate
             capacity_vector -= routing_matrix @ rate
             for lid in desired_lids:
-                assert lid >= starting_v_lid
+                # assert lid >= starting_v_lid
                 link_mask[lid] = False
                 desired_flows = np.sort(routing_matrix.getrow(lid).indices)
                 flow_mask[desired_flows] = False
@@ -84,8 +84,8 @@ def get_rates(problem: Problem, num_paths_per_flow, link_cap, path_characteristi
                     fid_to_subflow_removed[actual_d_flow] += 1
                     already_seen_subflows.add(actual_d_s_flow)
         else:
-            min_link = np.where(rem_fair_share <= link_min_fair + constants.O_epsilon)
-            assert np.all(min_link[0] < true_links.shape[0])
+            min_link = np.where(rem_fair_share[true_links] <= link_min_fair + constants.O_epsilon)
+            # assert np.all(min_link[0] < true_links.shape[0])
             # active_flows = np.unique(np.where(which_sub_flow_active)[0])
             curr_rate = link_min_fair * reshaped_active_sub_flow
             final_flow_rate[np_sub_flow_list] += curr_rate

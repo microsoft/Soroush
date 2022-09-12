@@ -60,7 +60,7 @@ for num_paths in num_path_list:
                 print("=" * 5, file_name, per_flow_log_file_name, "=" * 5)
                 b4_output = b4_class.get_rates(problem, num_paths, link_cap,
                                                path_edge_idx_mapping=path_edge_idx_mapping,
-                                               ath_path_len_mapping=path_path_len_mapping)
+                                               path_path_len_mapping=path_path_len_mapping)
                 b4_fid_to_per_path_rate, b4_dur, b4_run_time_dict = b4_output
 
                 b4_total_flow = 0
