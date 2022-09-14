@@ -308,8 +308,10 @@ if __name__ == '__main__':
     idx = 0
     seed_tm_fname = glob('../ncflow/traffic-matrices/{}/{}_{}_*_{}_*.pkl'.format(
         TM_MODEL, TOPOLOGY, TM_MODEL, SCALE_FACTOR))[idx]
+
+    print(f"=========== {seed_tm_fname}")
     seed_prob = Problem.from_file(
-        '../topologies/topology-zoo/{}'.format(TOPOLOGY), seed_tm_fname)
+        '../ncflow/topologies/topology-zoo/{}'.format(TOPOLOGY), seed_tm_fname)
     num_tms = 25
     time_per_prob = 5 * 60
 
