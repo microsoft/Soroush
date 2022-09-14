@@ -37,10 +37,11 @@ def generate_sequence_of_tms(seed_prob,
     np.random.seed(seed)
     curr_idx = 1
     while len(problems) < num_tms:
-        file_format = traffic_format.format(curr_idx)
-        if utils.file_exists(file_format):
+        traffic_dir = traffic_format
+        traffic_file = traffic_dir + f"/traffic_{curr_idx}.pickle"
+        if utils.file_exists(traffic_file):
             # load existing traffic
-            new_prob = utils.read_pickle_file(file_format)
+            new_prob = utils.read_pickle_file(traffic_file)
         else:
             # create new traffic
             new_prob = problems[-1].copy()
@@ -48,6 +49,8 @@ def generate_sequence_of_tms(seed_prob,
             perturb_mean = np.random.normal(delta_mean, delta_std)
             perturb_mean *= np.random.choice([-1, 1])
             new_prob.traffic_matrix.perturb_matrix(perturb_mean, delta_std)
+            utils.ensure_dir(traffic_dir)
+            utils.write_to_file_as_pickle(new_prob, traffic_dir, traffic_file)
         problems.append(new_prob)
         curr_idx += 1
     return problems
@@ -328,8 +331,7 @@ if __name__ == '__main__':
     link_cap = 1000.0
     traffic_format = '../outputs/demand_tracking_traffic/' + TOPOLOGY + '_' + TM_MODEL + '_' + \
                      str(SCALE_FACTOR) + '_' + str(idx) + '_' + str(rel_delta_abs_mean) + '_' + \
-                     str(rel_delta_std) + '_{}.pickle'
-    utils.ensure_dir(traffic_format)
+                     str(rel_delta_std)
 
     ### numbers borrowed from NCFlow
     problems = generate_sequence_of_tms(seed_prob,
@@ -337,9 +339,10 @@ if __name__ == '__main__':
                                         rel_delta_abs_mean=rel_delta_abs_mean,
                                         rel_delta_std=rel_delta_std,
                                         traffic_format=traffic_format)
-
+    print_total_demand(problems)
+    
     path_output = shortest_paths.all_pair_shortest_path_multi_processor(seed_prob.G, seed_prob.edge_idx,
-                                                                        k=seed_prob, number_processors=32)
+                                                                        k=num_paths_per_flow, number_processors=32)
 
     for algo in ALG_LIST:
         print('Algo: {}'.format(algo.name))
