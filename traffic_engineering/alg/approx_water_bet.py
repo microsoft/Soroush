@@ -34,7 +34,7 @@ def get_routing_matrix(sub_fid_path_len_vector, num_paths_per_flow, row_list, co
 
 def get_rates(problem: Problem, path_split_ratio_mapping, num_paths_per_flow, num_iter_approx_water, num_iter_bet,
               link_cap, path_characteristics=None, path_edge_idx_mapping=None, path_path_len_mapping=None,
-              break_down=False, bias_toward_low_flow_rate=False, bias_alpha=None, return_matrix=False):
+              break_down=False, bias_toward_low_flow_rate=False, bias_alpha=None, return_matrix=False, return_details=False):
     run_time_dict = dict()
     run_time_dict[MODEL_TIME] = 0
     run_time_dict[COMPUTATION_TIME] = 0
@@ -74,6 +74,10 @@ def get_rates(problem: Problem, path_split_ratio_mapping, num_paths_per_flow, nu
         computation_dur = 0
         updating_split_ratios_dur = 0
 
+    if return_details:
+        sample_run_time = []
+        sample_split_ratio = []
+        sample_allocation = []
     computation_st_time = datetime.now()
     for iter_bet_no in range(num_iter_bet):
         if break_down:
@@ -123,6 +127,10 @@ def get_rates(problem: Problem, path_split_ratio_mapping, num_paths_per_flow, nu
 
         if bias_toward_low_flow_rate:
             bias_flow_rate = total_rate
+
+        if return_details:
+            sample_split_ratio.append(split_ratios.copy())
+            sample_allocation.append(throughput.copy())
         split_ratios = throughput / total_rate.reshape(num_flows, -1)
 
     run_time_dict[COMPUTATION_TIME] = (datetime.now() - computation_st_time).total_seconds()
@@ -135,6 +143,8 @@ def get_rates(problem: Problem, path_split_ratio_mapping, num_paths_per_flow, nu
     if return_matrix:
         output = final_flow_rate.reshape(num_flows, num_paths_per_flow)
         return output, dur, all_satisfied, run_time_dict
+    if return_details:
+        return sample_allocation, sample_split_ratio
 
     extract_st_time = datetime.now()
     for fid, (src, dst, demand) in list_commodities:
