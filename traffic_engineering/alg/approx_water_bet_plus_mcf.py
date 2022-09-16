@@ -74,8 +74,12 @@ def get_rates(problem: problem.Problem, paths, path_edge_idx_mapping, path_path_
         # Setting up the parameters
         num_flows = len(flow_details)
         num_flows_per_barrier = np.int(np.ceil(num_flows / num_bins))
-        beta = np.power(min_beta, 1/(num_bins - 1))
-        epsilon = np.power(min_epsilon, 1/(num_bins - 1))
+        if num_bins > 1:
+            beta = np.power(min_beta, 1/(num_bins - 1))
+            epsilon = np.power(min_epsilon, 1/(num_bins - 1))
+        else:
+            beta = 0
+            epsilon = 1
         run_time_dict[MODEL_TIME] += (datetime.now() - model_st_time).total_seconds()
 
         output = approx_water_plus_mcf.compute_throughput_path_based_given_tm(flow_details, flow_rate_matrix, link_cap, demand_vector,
