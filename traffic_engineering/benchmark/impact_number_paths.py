@@ -32,6 +32,7 @@ for file_name in fnames:
         break
 assert found
 problem = Problem.from_file(file_name[3], file_name[4])
+utils.revise_list_commodities(problem)
 link_cap = 1000.0
 
 num_bins, min_epsilon, min_beta, k, link_cap_scale_factor, num_iter_approx, num_iter_bet, base_split = \
