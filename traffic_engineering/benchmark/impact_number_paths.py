@@ -86,8 +86,8 @@ for num_paths_per_flow in num_path_list:
     swan_output = swan_solver.max_min_approx(2, 0.1, problem, path_dict, link_cap)
     swan_fid_to_flow_rate_mapping, swan_dur, swan_run_time_dict = swan_output
 
-    swan_fairness_no = benchmark_plot_utils.compute_fairness_no_vectorized_baseline(swan_fid_to_flow_rate_mapping,
-                                                                                    adaptive_fid_to_flow_rate_mapping,
+    swan_fairness_no = benchmark_plot_utils.compute_fairness_no_vectorized_baseline(danna_to_fid_rate_vector,
+                                                                                    swan_fid_to_flow_rate_mapping,
                                                                                     problem.sparse_commodity_list,
                                                                                     theta_fairness=0.1)
 
