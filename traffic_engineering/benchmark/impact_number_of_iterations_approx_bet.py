@@ -75,7 +75,7 @@ for i in range(num_iter_bet):
 
     fid_to_rate_mapping = dict()
     for fid, (src, dst, _) in problem.sparse_commodity_list:
-        fid_to_rate_mapping[fid] = np.sum(sample_allocation[i])
+        fid_to_rate_mapping[(src, dst)] = np.sum(sample_allocation[i][fid, :])
     fairness_no = benchmark_plot_utils.compute_fairness_no_vectorized_baseline(danna_to_fid_rate_vector,
                                                                                fid_to_rate_mapping,
                                                                                problem.sparse_commodity_list,
@@ -84,7 +84,7 @@ for i in range(num_iter_bet):
     print(f"= fairness no {iter_to_fairness_mapping[i]}")
 
     if i < num_iter_bet - 1:
-        iter_to_split_ratio_change_mapping = np.sum(np.abs(sample_split_ratio[i+1] - sample_split_ratio[i]))
+        iter_to_split_ratio_change_mapping[i] = np.sum(np.abs(sample_split_ratio[i+1] - sample_split_ratio[i]))
         print(f"= split ratio change {iter_to_split_ratio_change_mapping[i]}")
 
 
