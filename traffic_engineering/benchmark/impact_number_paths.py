@@ -9,6 +9,7 @@ from utilities import shortest_paths
 from utilities import utils, constants
 from ncflow.lib.problem import Problem
 from alg import approx_water_bet_plus_mcf as equi_binner
+from alg import geometric_approx_binning as gb_solver
 from alg import danna_practical_max_min_fair as danna_solver
 from alg import swan_max_min_approx as swan_solver
 from alg import approx_water_bet as adaptive_water
@@ -19,7 +20,7 @@ TM_MODEL = 'gravity'
 TOPO_NAME = 'Cogentco.graphml'
 traffic_name_init = "Cogentco.graphml_gravity_1229219359_64.0_76765.140625"
 split_type = constants.EXPONENTIAL_DECAY
-num_path_list = [4, 8, 12, 16, 20]
+num_path_list = [4, 8, 12, 16, 20, 24, 28, 32]
 
 
 fnames = utils.find_topo_tm_fname(TOPO_NAME, TM_MODEL)
@@ -34,6 +35,8 @@ assert found
 problem = Problem.from_file(file_name[3], file_name[4])
 utils.revise_list_commodities(problem)
 link_cap = 1000.0
+output_dir = f"./outputs/impact_path_{utils.get_fid()}/"
+utils.ensure_dir(output_dir)
 
 num_bins, min_epsilon, min_beta, k, link_cap_scale_factor, num_iter_approx, num_iter_bet, base_split = \
     constants.TOPOLOGY_TO_APPROX_BET_MCF_PARAMS[TOPO_NAME]
@@ -92,32 +95,48 @@ for num_paths_per_flow in num_path_list:
                                                                                     problem.sparse_commodity_list,
                                                                                     theta_fairness=0.1)
 
+    gb_output = gb_solver.max_min_approx(2, 0.1, problem, path_dict, link_cap, max_epsilon=1e-6)
+    gb_fid_to_flow_rate_mapping, gb_duration, gb_run_time_dict = gb_output
+
+    gb_fairness_no = benchmark_plot_utils.compute_fairness_no_vectorized_baseline(danna_to_fid_rate_vector,
+                                                                                  gb_fid_to_flow_rate_mapping,
+                                                                                  problem.sparse_commodity_list,
+                                                                                  theta_fairness=0.1)
+
     total_rate_eb = 0
     total_rate_danna = 0
     total_rate_h = 0
     total_rate_swan = 0
+    total_rate_gb = 0
     for fid, (src, dst, demand) in problem.sparse_commodity_list:
         total_rate_eb += np.sum(eb_fid_to_flow_rate_mapping[src, dst])
         total_rate_swan += np.sum(swan_fid_to_flow_rate_mapping[src, dst])
         total_rate_h += np.sum(adaptive_fid_to_flow_rate_mapping[src, dst])
         total_rate_danna += np.sum(danna_fid_to_total_rate[src, dst])
+        total_rate_gb += np.sum(gb_fid_to_flow_rate_mapping[src, dst])
 
-    print(f"===================== results for num paths {num_paths_per_flow} ====================")
-    print(f"========= approach {constants.SWAN}")
-    print(f"fairness {swan_fairness_no}")
-    print(f"efficiency {total_rate_swan}")
-    print(f"run time {swan_run_time_dict}")
-    print(f"========= approach {constants.APPROX_BET}")
-    print(f"fairness {adaptive_fairness_no}")
-    print(f"efficiency {total_rate_h}")
-    print(f"run time {adaptive_run_time_dict}")
-    print(f"======== approach {constants.APPROX_BET_MCF}")
-    print(f"fairness {eb_fairness_no}")
-    print(f"efficiency {total_rate_eb}")
-    print(f"run time {eb_run_time_dict}")
-    print(f"======== approach {constants.DANNA}")
-    print(f"fairness 1.0")
-    print(f"efficiency {total_rate_danna}")
-    print(f"run time {danna_run_time_dict}")
+    log_txt = f"===================== results for num paths {num_paths_per_flow} ====================\n" \
+              f"========= approach {constants.SWAN}\n" \
+              f"fairness {swan_fairness_no}\n" \
+              f"efficiency {total_rate_swan}\n" \
+              f"run time {swan_run_time_dict}\n" \
+              f"========= approach {constants.APPROX_BET}\n" \
+              f"fairness {adaptive_fairness_no}\n" \
+              f"efficiency {total_rate_h}\n" \
+              f"run time {adaptive_run_time_dict}\n" \
+              f"======== approach {constants.APPROX_BET_MCF}\n" \
+              f"fairness {eb_fairness_no}\n" \
+              f"efficiency {total_rate_eb}\n" \
+              f"run time {eb_run_time_dict}\n" \
+              f"======== approach {constants.DANNA}\n" \
+              f"fairness 1.0\n" \
+              f"efficiency {total_rate_danna}\n" \
+              f"run time {danna_run_time_dict}\n" \
+              f"======== approach {constants.NEW_APPROX}\n" \
+              f"fairness {gb_fairness_no}\n" \
+              f"efficiecny {total_rate_gb}\n" \
+              f"run time {gb_run_time_dict}\n"
 
+    output_file = output_dir + f"shortest_paths_{num_paths_per_flow}.txt"
+    utils.write_to_file(output_file, output_dir, output_file)
 
