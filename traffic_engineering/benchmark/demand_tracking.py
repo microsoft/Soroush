@@ -66,6 +66,7 @@ class Danna(object):
         self.fid_to_per_path_rate = None
 
     def solve(self, problem, path_output, num_paths_per_flow, link_cap):
+        utils.revise_list_commodities(problem)
         path_dict, _, _, _, _ = path_output
         output = self.solver.get_rates(0, problem, paths=path_dict, link_cap=link_cap,
                                        feasibility_grb_method=self.feasibility_grb_method,
@@ -106,6 +107,7 @@ class EB(object):
         self.mcf_grb_method = 2
 
     def solve(self, problem, path_output, num_paths_per_flow, link_cap):
+        utils.revise_list_commodities(problem)
         path_dict, path_edge_idx_mapping, path_path_len_mapping, path_total_path_len_mapping, path_split_ratio_mapping = path_output
         output = eb_solver.get_rates(problem, path_dict,
                                      path_edge_idx_mapping,
@@ -149,6 +151,7 @@ class Heuristic(object):
         _, _, _, _, _, self.num_iter_approx, self.num_iter_bet, _ = constants.TOPOLOGY_TO_APPROX_BET_MCF_PARAMS[topo_name]
 
     def solve(self, problem, path_output, num_paths_per_flow, link_cap):
+        utils.revise_list_commodities(problem)
         path_dict, path_edge_idx_mapping, path_path_len_mapping, path_total_path_len_mapping, path_split_ratio_mapping = path_output
         output = heuristic_solver.get_rates(problem,
                                             path_split_ratio_mapping,
@@ -186,10 +189,11 @@ class SWAN(object):
 
     def solve(self, problem, path_output, num_paths_per_flow, link_cap):
         path_dict, _, _, _, _ = path_output
+        utils.revise_list_commodities(problem)
         swan_output = swan_solver.max_min_approx(self.alpha, self.U, problem, path_dict, link_cap,
                                                  mcf_grb_method=self.mcf_grb_method,
                                                  break_down=False)
-        fid_to_flow_rate_mapping, dur, _, run_time_dict = swan_output
+        fid_to_flow_rate_mapping, dur, run_time_dict = swan_output
         self.run_time = benchmark_plot_utils.get_output_run_time(self.approach_name, run_time_dict,
                                                                  constants.approach_to_valid_for_run_time)
         self.fid_to_flow_rate = fid_to_flow_rate_mapping
@@ -209,7 +213,9 @@ class SWAN(object):
 
 def compute_satisfied_demand(problem, sol_dict, residual_factor):
     if sol_dict is None:
-        return 0.0, problem.traffic_matrix.tm.copy() * residual_factor
+        residual_dict = {(s_k, t_k): d_k * residual_factor for _, (s_k, t_k, d_k) in problem.commodity_list}
+        assigned_rates = {(s_k, t_k): 0 for _, (s_k, t_k, d_k) in problem.commodity_list}
+        return assigned_rates, residual_dict, problem.traffic_matrix.tm.copy() * residual_factor
 
     curr_demand_dict = {(s_k, t_k): d_k
                         for _, (s_k, t_k, d_k) in problem.commodity_list}
@@ -234,7 +240,7 @@ def compute_satisfied_demand(problem, sol_dict, residual_factor):
 
 
 def demand_tracking(algo, problems, time_per_prob, residual_factor, path_output, num_paths_per_flow, link_cap):
-    results_dirname = f"../demand_tracking_{algo.name}_{utils.get_fid()}/"
+    results_dirname = f"../outputs/demand_tracking_{algo.name}_{utils.get_fid()}/"
     utils.ensure_dir(results_dirname)
 
     i = 0
@@ -319,10 +325,10 @@ if __name__ == '__main__':
     time_per_prob = 5 * 60
 
     ALG_LIST = [
-        INSTANTDANNA(),
+        # INSTANTDANNA(),
         # Danna(),
         EB(TOPOLOGY),
-        SWAN(),
+        # SWAN(),
     ]
 
     rel_delta_abs_mean = 0.35
@@ -340,7 +346,7 @@ if __name__ == '__main__':
                                         rel_delta_std=rel_delta_std,
                                         traffic_format=traffic_format)
     print_total_demand(problems)
-    
+
     path_output = shortest_paths.all_pair_shortest_path_multi_processor(seed_prob.G, seed_prob.edge_idx,
                                                                         k=num_paths_per_flow, number_processors=32)
 
