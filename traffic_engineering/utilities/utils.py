@@ -74,7 +74,7 @@ def revise_list_commodities(problem):
     for fid, (i, j, demand) in problem.sparse_commodity_list:
         if demand <= 0:
             found_zero = True
-            print(f"flow {fid} with src {i} dst {j} demand {demand} removed!!")
+            #print(f"flow {fid} with src {i} dst {j} demand {demand} removed!!")
             list_to_remove.append((fid, (i, j, demand)))
 
     if found_zero:

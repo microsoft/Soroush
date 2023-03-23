@@ -114,13 +114,18 @@ def get_vectorized_path_characteristics(problem: Problem, path_edge_idx_mapping,
 
 def get_approx_label(approach, num_iter):
     if approach == constants.APPROX:
-        return approach.format(num_iter[0])
+        # return approach.format(num_iter[0])
+        return "approx"
     if approach == constants.APPROX_BET:
-        return approach.format(num_iter[0], num_iter[1])
+        # return approach.format(num_iter[0], num_iter[1])
+        return "heuristic"
     if approach == constants.APPROX_MCF:
-        return approach.format(num_iter[0])
+        # return approach.format(num_iter[0])
+        return "approx_bet_mcf"
     if approach == constants.APPROX_BET_MCF:
-        return approach.format(num_iter[0], num_iter[1])
+        # return approach.format(num_iter[0], num_iter[1])
+        return "Equi-depth binner"
     if approach == constants.APPROX_BET_MCF_BIASED:
-        return approach.format(num_iter[0], num_iter[1])
+        # return approach.format(num_iter[0], num_iter[1])
+        return "Equi-depth binner biased"
     return approach

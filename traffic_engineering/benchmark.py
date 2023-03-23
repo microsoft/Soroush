@@ -18,17 +18,19 @@ from alg import approx_water_plus_mcf, approx_water_bet
 from alg import approx_water_bet_plus_mcf
 
 
+# TM_MODEL = 'poisson-high-inter'
 TM_MODEL = 'gravity'
-# TOPO_NAME = 'Kdl.graphml'
+
+TOPO_NAME = 'Kdl.graphml'
 # TOPO_NAME = 'Cogentco.graphml'
 # TOPO_NAME = 'GtsCe.graphml'
 # TOPO_NAME = 'UsCarrier.graphml'
-TOPO_NAME = 'Colt.graphml'
+# TOPO_NAME = 'Colt.graphml'
 # TOPO_NAME = 'Ion.graphml'
 # TOPO_NAME = 'Uninett2010.graphml'
 LOG_DIR = f"./outputs/examples/{TOPO_NAME}/{TM_MODEL}"
 utils.ensure_dir(LOG_DIR)
-f_idx = 25
+f_idx = 1
 
 
 def find_topo_tm_fname(topo_name, tm_model):
@@ -44,6 +46,7 @@ def find_topo_tm_fname(topo_name, tm_model):
 
 
 fnames = find_topo_tm_fname(TOPO_NAME, TM_MODEL)
+print(fnames)
 num_paths_per_flow = 16
 
 num_iter_bet = 10
@@ -59,7 +62,7 @@ danna_file_path = f"./outputs/examples/{TOPO_NAME}/{TM_MODEL}/danna_gtsc_{f_idx}
 if utils.file_exists(danna_file_path):
     danna_fid_to_total_rate = utils.read_pickle_file(danna_file_path)
 else:
-    danna_fid_to_total_rate, danna_dur = danna_practical_max_min_fair.get_rates(0.1, problem, path_dict, link_cap=1000.0)
+    danna_fid_to_total_rate, danna_dur = danna_practical_max_min_fair.get_rates(0.1, problem, path_dict, link_cap=1000.0, feasibility_grb_method=1, mcf_grb_method=1)
     utils.write_to_file_as_pickle(danna_fid_to_total_rate, LOG_DIR, danna_file_path)
 
 # iewf_fid_to_flow_rate_mapping, iewf_dur = iewf_upward_max_min.get_rates(problem, path_edge_idx_mapping, 1000.0, num_paths_per_flow, 2)

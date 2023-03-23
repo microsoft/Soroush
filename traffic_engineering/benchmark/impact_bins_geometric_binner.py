@@ -21,7 +21,7 @@ num_iter_approx = 1
 num_iter_bet = 500
 U = 0.1
 min_epsilon = 1e-6
-bins_list = [1, 2, 4, 8, 16]
+bins_list = [1, 2, 4, 8, 16, 32, 64]
 
 
 fnames = utils.find_topo_tm_fname(TOPO_NAME, TM_MODEL)

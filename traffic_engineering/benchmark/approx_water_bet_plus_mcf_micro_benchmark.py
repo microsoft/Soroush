@@ -16,15 +16,15 @@ from scripts import benchmark_plot_utils
 
 TM_MODEL_LIST = [
     'uniform',
-    'bimodal',
-    'gravity',
-    'poisson-high-inter',
+    #'bimodal',
+    #'gravity',
+    #'poisson-high-inter',
     # 'poisson-high-intra',
 ]
 TOPO_NAME_LIST = [
-    'Uninett2010.graphml',
-    'Cogentco.graphml',
-    'GtsCe.graphml',
+    #'Uninett2010.graphml',
+    #'Cogentco.graphml',
+    #'GtsCe.graphml',
     'UsCarrier.graphml',
     'Colt.graphml',
     'TataNld.graphml',
@@ -42,6 +42,7 @@ output_approx_bet = benchmark_plot_utils.read_rate_log_file(constants.APPROX_BET
                                                             "*", {constants.APPROX_BET: "*"})
 
 
+
 danna_fid_to_rate_mapping = output_fairness_baseline[2]
 approx_bet_fid_to_rate_mapping = output_approx_bet[2]
 danna_to_fid_rate_vector_mapping = defaultdict(dict)
@@ -55,13 +56,15 @@ for tm_model in TM_MODEL_LIST:
             for num_path in danna_fid_to_rate_mapping:
                 danna_to_fid_rate_vector_mapping[num_path][f"'{file_name[4]}'"] = \
                     np.zeros(shape=len(problem.sparse_commodity_list))
+                danna_fid_to_rate = utils.read_pickle_file(danna_fid_to_rate_mapping[num_path][f"'{file_name[4]}'"])
                 for fid, (src, dst, _) in problem.sparse_commodity_list:
                     danna_to_fid_rate_vector_mapping[num_path][f"'{file_name[4]}'"][fid] = \
-                        np.sum(danna_fid_to_rate_mapping[num_path][f"'{file_name[4]}'"][src, dst])
+                        np.sum(danna_fid_to_rate[src, dst])
                 for num_iter in approx_bet_fid_to_rate_mapping[num_path][f"'{file_name[4]}'"]:
+                    approx_fid_to_rate = utils.read_pickle_file(approx_bet_fid_to_rate_mapping[num_path][f"'{file_name[4]}'"][num_iter])
                     approx_bet_file_to_fairness_mapping[f"'{file_name[4]}'"][num_iter] = \
                         benchmark_plot_utils.compute_fairness_no_vectorized_baseline(danna_to_fid_rate_vector_mapping[num_path][f"'{file_name[4]}'"],
-                                                                                     approx_bet_fid_to_rate_mapping[num_path][f"'{file_name[4]}'"][num_iter],
+                                                                                     approx_fid_to_rate,
                                                                                      problem.sparse_commodity_list,
                                                                                      theta_fairness=0.1)
 
@@ -72,7 +75,11 @@ del output_approx_bet
 approach = constants.APPROX_BET
 num_path_list = [16]
 num_iter_approx_list = [1]
-num_iter_bet_list = [10]
+num_iter_bet_list = [
+    10,
+    20,
+    30,
+]
 grb_method_list = [
     # 1,
     2
@@ -166,7 +173,7 @@ log_file = f"../outputs/mini_benchmark_approx_w_bet_p_mcf_{fid}.txt"
 log_folder_flows = f"../outputs/mini_benchmark_approx_w_bet_p_mcf_{fid}/"
 base_split = 0.9
 split_type = constants.EXPONENTIAL_DECAY
-num_scenario_per_topo_traffic = 2
+num_scenario_per_topo_traffic = 5
 U = 0.1
 alpha = 2
 ignore_scale_factor_under = 16
@@ -246,7 +253,7 @@ for num_paths in num_path_list:
                                                         problem.sparse_commodity_list,
                                                         theta_fairness=0.1)
                                                 approx_bet_fairness_no = \
-                                                    approx_bet_file_to_fairness_mapping[f"'{file_name[4]}'"][(str(num_iter_approx), str(num_iter_bet))]
+                                                    approx_bet_file_to_fairness_mapping[f"'{file_name[4]}'"][(str(num_iter_approx_list[0]), str(num_iter_bet_list[0]))]
                                                 log_txt = f"{mcf_method},{scale_factor},{num_bins}," \
                                                           f"{min_epsilon},{min_beta},{k}," \
                                                           f"{file_name},{num_paths},{num_iter_approx}," \

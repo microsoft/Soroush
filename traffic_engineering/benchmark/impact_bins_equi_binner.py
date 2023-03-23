@@ -16,7 +16,7 @@ TM_MODEL = 'gravity'
 TOPO_NAME = 'Cogentco.graphml'
 traffic_name_init = "Cogentco.graphml_gravity_1229219359_64.0_76765.140625"
 split_type = constants.EXPONENTIAL_DECAY
-bins_list = [1, 2, 4, 8, 16]
+bins_list = [1, 2, 4, 8, 16, 32, 64]
 
 
 fnames = utils.find_topo_tm_fname(TOPO_NAME, TM_MODEL)

@@ -113,6 +113,10 @@ def get_rates(problem: Problem, path_split_ratio_mapping, num_paths_per_flow, nu
             checkpoint = datetime.now()
 
         if iter_bet_no == num_iter_bet - 1:
+            if return_details:
+                sample_split_ratio.append(split_ratios.copy())
+                throughput = np.reshape(final_flow_rate, (num_flows, num_paths_per_flow))
+                sample_allocation.append(throughput.copy())
             break
 
         throughput = np.reshape(final_flow_rate, (num_flows, num_paths_per_flow))
@@ -178,3 +182,4 @@ def _apply_congestion(routing_matrix, flow_rate, non_zeros_fids, link_cap, updat
     if update_rate:
         flow_rate[non_zeros_fids] = flow_rate_on_link
     return fair_share
+

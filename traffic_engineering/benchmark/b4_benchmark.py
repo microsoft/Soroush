@@ -20,7 +20,7 @@ TM_MODEL_LIST = [
     # 'poisson-high-intra',
 ]
 TOPO_NAME_LIST = [
-    'Uninett2010.graphml',
+    # 'Uninett2010.graphml',
     'Cogentco.graphml',
     'GtsCe.graphml',
     'UsCarrier.graphml',
@@ -33,7 +33,7 @@ feasibility_grb_method = 1
 mcf_grb_method = 1
 num_path_list = [16]
 link_cap = 1000.0
-use_b4_plus = True
+use_b4_plus = False
 b4_class = b4
 if use_b4_plus:
     b4_class = b4_plus

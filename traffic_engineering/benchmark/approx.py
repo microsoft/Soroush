@@ -95,19 +95,19 @@ TM_MODEL_LIST = [
     # 'poisson-high-intra',
 ]
 TOPO_NAME_LIST = [
-    # 'Uninett2010.graphml',
+    'Uninett2010.graphml',
     # 'Cogentco.graphml',
     # 'GtsCe.graphml',
-    'UsCarrier.graphml',
+    # 'UsCarrier.graphml',
     # 'Colt.graphml',
-    'TataNld.graphml',
+    # 'TataNld.graphml',
     # 'Kdl.graphml',
 ]
 # APPROACH_LIST = [constants.APPROX_MCF, constants.APPROX_BET, constants.APPROX_BET_MCF]
 # APPROACH_LIST = [constants.APPROX_BET, constants.APPROX_BET_MCF]
 APPROACH_LIST = [
     # constants.APPROX,
-    constants.APPROX_BET,
+    # constants.APPROX_BET,
     constants.APPROX_BET_MCF,
 ]
 # num_path_list = [4, 16]
@@ -120,7 +120,7 @@ num_repeats = 3
 
 # (num_bins, min_epsilon, min_beta, k, link_cap_scale_factor)
 TOPOLOGY_TO_APPROX_BET_MCF_PARAMS = {
-    'Uninett2010.graphml': (4, 1e-2, 1e-2, 1, 1000, 1, 10, 0.9),
+    'Uninett2010.graphml': (7, 1e-2, 1e-2, 1, 1000, 1, 20, 0.7),
     'Cogentco.graphml': (15, 1e-2, 1e-2, 1, 1000, 1, 10, 0.9),
     'GtsCe.graphml': (12, 1e-2, 1e-2, 1, 1000, 1, 10, 0.9),
     'UsCarrier.graphml': (7, 1e-2, 1e-2, 1, 1000, 1, 20, 1.0),

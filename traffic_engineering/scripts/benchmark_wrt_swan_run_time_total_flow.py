@@ -40,10 +40,16 @@ approach_to_log_dir_mapping = {
     #                  ("../outputs/swan_2022_04_09_23_17_04_1af420da", 0),
     #                  ("../outputs/swan_2022_05_21_08_57_09_81eae09f", 0)],
     constants.APPROX: [("../outputs/approx(1)_2022_08_26_08_25_54_0691655a", 1)],
-    constants.APPROX_BET: [("../outputs/approx(1)_bet_2022_08_27_01_50_46_4284934e", 1),
-                           ("../outputs/approx(1)_bet_2022_09_06_18_58_51_9f5810ed", 1)],
-    constants.APPROX_BET_MCF: [("../outputs/approx(1)_bet(10)_mcf_2022_09_03_12_39_08_e0e2b482", 1),
-                               ("../outputs/approx(1)_bet(20)_mcf_2022_09_06_20_44_22_b768b3f8", 1)],
+    constants.APPROX_BET: [
+                #("../outputs/approx(1)_bet_2022_08_27_01_50_46_4284934e", 1),
+                #("../outputs/approx(1)_bet_2022_09_06_18_58_51_9f5810ed", 1),
+                ("../outputs/heuristic_2022_09_15_06_11_13_7a056142", 1)
+    ],
+    constants.APPROX_BET_MCF: [
+                #("../outputs/approx(1)_bet(10)_mcf_2022_09_03_12_39_08_e0e2b482", 1),
+                #("../outputs/approx(1)_bet(20)_mcf_2022_09_06_20_44_22_b768b3f8", 1),
+                ("../outputs/Equi-depth binner_2022_09_17_00_36_05_75d6288e", 1)
+    ],
     constants.NEW_APPROX: [("../outputs/geometric_binner_2022_08_25_06_02_02_72f6231f", 0)],
     constants.DANNA: [("../outputs/danna_practical_2022_08_16_17_13_19_dc44cf7e", 0),
                       ("../outputs/danna_practical_2022_08_16_22_22_21_6afe1d48", 0)],
@@ -120,17 +126,17 @@ TM_MODEL_LIST = [
     # 'poisson-high-intra',
 ]
 TOPO_NAME_LIST = [
-    # 'Uninett2010.graphml',
-    'Cogentco.graphml',
-    'GtsCe.graphml',
-    'UsCarrier.graphml',
+    'Uninett2010.graphml',
+    #'Cogentco.graphml',
+    #'GtsCe.graphml',
+    #'UsCarrier.graphml',
     # 'Colt.graphml',
-    'TataNld.graphml',
+    #'TataNld.graphml',
     # 'Kdl.graphml',
 ]
 
 APPROX_TOPO_NAME_TO_ITERATION = {
-    "'Uninett2010.graphml'": (1, 10),
+    "'Uninett2010.graphml'": (1, 20),
     "'Cogentco.graphml'": (1, 10),
     "'GtsCe.graphml'": (1, 10),
     "'UsCarrier.graphml'": (1, 20),
@@ -177,9 +183,9 @@ params = {'legend.fontsize': 15,
           'legend.handlelength': 2}
 plt.rcParams.update(params)
 
-approach_to_total_thru_mapping = defaultdict(lambda: defaultdict(dict))
-approach_to_run_time_mapping = defaultdict(lambda: defaultdict(dict))
-approach_to_fid_to_rate_fname_mapping = defaultdict(lambda: defaultdict(dict))
+approach_to_total_thru_mapping = dict()
+approach_to_run_time_mapping = dict()
+approach_to_fid_to_rate_fname_mapping = dict()
 for approach, dir_list in approach_to_log_dir_mapping.items():
     output = benchmark_plot_utils.read_rate_log_file(approach, dir_list,
                                                      valid_topo_traffic_list=TOPO_TM_MODEL_COMB,

@@ -210,6 +210,10 @@ class SWAN(object):
     def runtime(self):
         return self.run_time
 
+class INSTANTSWAN(SWAN):
+    @property
+    def runtime(self):
+        return 0
 
 def compute_satisfied_demand(problem, sol_dict, residual_factor):
     if sol_dict is None:
@@ -324,11 +328,15 @@ if __name__ == '__main__':
     num_tms = 25
     time_per_prob = 5 * 60
 
+    residual_factor = 0
+
     ALG_LIST = [
-        # INSTANTDANNA(),
         # Danna(),
-        EB(TOPOLOGY),
+        # EB(TOPOLOGY),
         # SWAN(),
+        # INSTANTDANNA(),
+          INSTANTSWAN(),
+          SWAN(),
     ]
 
     rel_delta_abs_mean = 0.35
@@ -352,4 +360,4 @@ if __name__ == '__main__':
 
     for algo in ALG_LIST:
         print('Algo: {}'.format(algo.name))
-        demand_tracking(algo, problems, time_per_prob, 1, path_output, num_paths_per_flow, link_cap)
+        demand_tracking(algo, problems, time_per_prob, residual_factor, path_output, num_paths_per_flow, link_cap)
