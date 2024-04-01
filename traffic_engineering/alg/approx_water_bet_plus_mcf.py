@@ -14,7 +14,7 @@ EXTRACT_RATE = "extract_rate_approx_bet_p_mcf"
 def get_rates(problem: problem.Problem, paths, path_edge_idx_mapping, path_path_len_mapping, path_total_path_len_mapping,
               path_split_ratio_mapping, num_paths_per_flow, num_iter_approx_water, num_iter_bet, link_cap,
               mcf_grb_method=2, num_bins=5, min_beta=1e-4, min_epsilon=1e-2, k=1, alpha=0, link_cap_scale_factor=1,
-              break_down=False, biased_toward_low_flow_rate=False, biased_alpha=None, return_heuristic_output=None):
+              break_down=False, biased_toward_low_flow_rate=False, biased_alpha=None, return_heuristic_output=None, num_grb_threads=0):
 
     run_time_dict = dict()
     run_time_dict[MODEL_TIME] = 0
@@ -89,7 +89,8 @@ def get_rates(problem: problem.Problem, paths, path_edge_idx_mapping, path_path_
                                                                               mcf_grb_method=mcf_grb_method,
                                                                               break_down=break_down,
                                                                               link_cap_scale_multiplier=link_cap_scale_factor,
-                                                                              num_paths_per_flow=num_paths_per_flow)
+                                                                              num_paths_per_flow=num_paths_per_flow,
+                                                                              num_grb_threads=num_grb_threads)
         run_time_dict_2 = output[-1]
         output = output[:-1]
         for key, val in run_time_dict_2.items():
@@ -120,6 +121,6 @@ def get_rates(problem: problem.Problem, paths, path_edge_idx_mapping, path_path_
         for fid, (src, dst, _) in flow_details:
             heuristic_fid_rate_mapping[src, dst] = heuristic_output[fid]
         return fid_rate_mapping, heuristic_output, dur, run_time_dict
-    print(f"approx bet mcf {dur}")
-    print(f"approx bet mcf detail {run_time_dict}")
+    # print(f"approx bet mcf {dur}")
+    # print(f"approx bet mcf detail {run_time_dict}")
     return fid_rate_mapping, dur, run_time_dict

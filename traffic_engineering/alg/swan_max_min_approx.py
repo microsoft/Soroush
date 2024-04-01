@@ -13,7 +13,7 @@ MCF_SOLVER = 'mcf_solver'
 FREEZE_TIME = 'freeze_time'
 
 
-def max_min_approx(alpha, U, problem:problem.Problem, paths, link_cap, mcf_grb_method=2, break_down=False):
+def max_min_approx(alpha, U, problem: problem.Problem, paths, link_cap, mcf_grb_method=2, break_down=False, num_grb_threads=0):
     run_time_dict = dict()
     run_time_dict[MODEL_TIME] = 0
     run_time_dict[MCF_TOTAL] = 0
@@ -50,7 +50,8 @@ def max_min_approx(alpha, U, problem:problem.Problem, paths, link_cap, mcf_grb_m
     U = max(U, link_cap / len(problem.sparse_commodity_list))
     T = max(1, int(np.ceil(np.log(max_demand / U) / np.log(alpha))))
     model, flow_vars, constraint_dict = create_initial_mcf_model(problem, link_cap, link_src_dst_path_dict,
-                                                                 list_possible_paths, frozen_flows, mcf_grb_method)
+                                                                 list_possible_paths, frozen_flows, mcf_grb_method,
+                                                                 num_grb_threads)
 
     if break_down:
         checkpoint_1_time = datetime.now()
@@ -112,11 +113,12 @@ def modify_model(model, src, dst, rate, flow_vars, constraint_dict):
     model.addConstr(flow_vars.sum(src, dst, '*') == rate)
 
 
-def create_initial_mcf_model(problem:problem.Problem, link_cap, link_src_dst_path_dict, list_possible_paths,
-                             frozen_flows, mcf_grb_method):
+def create_initial_mcf_model(problem: problem.Problem, link_cap, link_src_dst_path_dict, list_possible_paths,
+                             frozen_flows, mcf_grb_method, num_grb_threads):
     m = Model()
     m.setParam(GRB.param.OutputFlag, 0)
     m.setParam(GRB.param.Method, mcf_grb_method)
+    m.setParam(GRB.param.Threads, num_grb_threads)
 
     flow = m.addVars(list_possible_paths, lb=0, name="flow")
 
@@ -142,7 +144,7 @@ def create_initial_mcf_model(problem:problem.Problem, link_cap, link_src_dst_pat
     return m, flow, constraint_dict
 
 
-def compute_throughput_path_based_given_tm(problem:problem.Problem, throughput_lb, throughput_ub, frozen_flows,
+def compute_throughput_path_based_given_tm(problem: problem.Problem, throughput_lb, throughput_ub, frozen_flows,
                                            model, constraint_dict, flow_vars, run_time_dict, break_down=False):
     if break_down:
         st_time_model = datetime.now()

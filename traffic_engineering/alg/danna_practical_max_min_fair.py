@@ -15,7 +15,8 @@ MCF_SOLVER = 'mcf_solver'
 EXTRACT_RATE = 'extract_rate'
 
 
-def get_rates(U, problem:problem.Problem, paths, link_cap, feasibility_grb_method=1, mcf_grb_method=2, break_down=False):
+def get_rates(U, problem: problem.Problem, paths, link_cap, feasibility_grb_method=1, mcf_grb_method=2,
+              break_down=False, numeric_num_decimals=-1):
     run_time_dict = dict()
     run_time_dict[MODEL_TIME] = 0
     run_time_dict[FEASIBILITY_TOTAL] = 0
@@ -60,8 +61,12 @@ def get_rates(U, problem:problem.Problem, paths, link_cap, feasibility_grb_metho
     sorted_list_unique_demands = sorted(list(set(list_demands)))
     prev_id_feas = 0
     iter_no = 0
-    feas_model, feas_constraint_dict = create_initial_feasibility_model(problem, link_cap, link_src_dst_path_dict, list_possible_paths, feasibility_grb_method)
-    mcf_model, mcf_thru_var, mcf_constraint_dict, flow_var = create_initial_mcf_model(problem, link_cap, link_src_dst_path_dict, list_possible_paths, mcf_grb_method)
+
+    cf_output = create_initial_feasibility_model(problem, link_cap, link_src_dst_path_dict, list_possible_paths, feasibility_grb_method)
+    feas_model, feas_constraint_dict = cf_output
+
+    cmcf_output = create_initial_mcf_model(problem, link_cap, link_src_dst_path_dict, list_possible_paths, mcf_grb_method)
+    mcf_model, mcf_thru_var, mcf_constraint_dict, flow_var = cmcf_output
 
     if break_down:
         pre_dur = (datetime.now() - st_time).total_seconds()
@@ -77,8 +82,7 @@ def get_rates(U, problem:problem.Problem, paths, link_cap, feasibility_grb_metho
     while len(frozen_flows) < num_flows:
         print(f"iter no. {iter_no}, num remaining flows {len(unfrozen_flows)}, total flows {num_flows}")
         prev_id_feas = binary_search_saturated_demands(problem, frozen_flows, unfrozen_flows, feas_model, feas_constraint_dict,
-                                                       prev_id_feas, sorted_list_unique_demands, run_time_dict,
-                                                       break_down=break_down)
+                                                       prev_id_feas, sorted_list_unique_demands, run_time_dict, break_down=break_down)
         last_model = feas_model
 
         if break_down:
@@ -91,7 +95,7 @@ def get_rates(U, problem:problem.Problem, paths, link_cap, feasibility_grb_metho
             break
         output = find_next_saturated_edge(problem, frozen_flows, unfrozen_flows, mcf_model, mcf_thru_var,
                                           mcf_constraint_dict, link_src_dst_path_dict, flow_var, link_cap,
-                                          run_time_dict, debug=False, break_down=break_down)
+                                          run_time_dict, debug=False, break_down=break_down, numeric_num_decimals=numeric_num_decimals)
         last_model = mcf_model
         if break_down:
             time_model, time_optimize, time_retrieve = output
@@ -124,7 +128,7 @@ def get_rates(U, problem:problem.Problem, paths, link_cap, feasibility_grb_metho
     return frozen_flows, flow_id_to_flow_rate_mapping, dur, run_time_dict
 
 
-def binary_search_saturated_demands(problem:problem.Problem, frozen_flows, unfrozen_flows, model, constraint_dict,
+def binary_search_saturated_demands(problem: problem.Problem, frozen_flows, unfrozen_flows, model, constraint_dict,
                                     prev_id_feas, sorted_list_unique_demands, run_time_dict, break_down=False):
 
     if break_down:
@@ -198,11 +202,13 @@ def binary_search_saturated_demands(problem:problem.Problem, frozen_flows, unfro
     return id_feasible
 
 
-def create_initial_feasibility_model(problem:problem.Problem, link_cap, link_src_dst_path_dict, list_possible_paths,
+def create_initial_feasibility_model(problem: problem.Problem, link_cap, link_src_dst_path_dict, list_possible_paths,
                                      feasibility_grb_method):
     m = Model()
     m.setParam(GRB.param.OutputFlag, 0)
     m.setParam(GRB.param.Method, feasibility_grb_method)
+    m.setParam(GRB.param.NumericFocus, 3)
+    m.setParam(GRB.param.FeasibilityTol, 0.000000001)
     flow = m.addVars(list_possible_paths, lb=0, name="flow")
 
     constraint_dict = dict()
@@ -222,7 +228,7 @@ def create_initial_feasibility_model(problem:problem.Problem, link_cap, link_src
     return m, constraint_dict
 
 
-def perform_feasibility_test(problem:problem.Problem, throughput_lb, frozen_flows, model, constraint_dict,
+def perform_feasibility_test(problem: problem.Problem, throughput_lb, frozen_flows, model, constraint_dict,
                              run_time_dict):
 
     for _, (i, j, demand) in problem.sparse_commodity_list:
@@ -240,10 +246,12 @@ def perform_feasibility_test(problem:problem.Problem, throughput_lb, frozen_flow
     return True
 
 
-def create_initial_mcf_model(problem:problem.Problem, link_cap, link_src_dst_path_dict, list_possible_paths, mcf_grb_method):
+def create_initial_mcf_model(problem: problem.Problem, link_cap, link_src_dst_path_dict, list_possible_paths, mcf_grb_method):
     m = Model()
     m.setParam(GRB.param.OutputFlag, 0)
     m.setParam(GRB.param.Method, mcf_grb_method)
+    m.setParam(GRB.param.NumericFocus, 3)
+    m.setParam(GRB.param.FeasibilityTol, 0.000000001)
     flow = m.addVars(list_possible_paths, lb=0, name="flow")
 
     t = m.addVar(lb=0, name="throughput")
@@ -265,9 +273,9 @@ def create_initial_mcf_model(problem:problem.Problem, link_cap, link_src_dst_pat
     return m, t, constraint_dict, flow
 
 
-def find_next_saturated_edge(problem:problem.Problem, frozen_flows, unfrozen_flows, model, throughput_var,
+def find_next_saturated_edge(problem: problem.Problem, frozen_flows, unfrozen_flows, model, throughput_var,
                              constraint_dict, link_src_dst_path_dict, flow_var, link_cap,
-                             run_time_dict, break_down=False, debug=False):
+                             run_time_dict, break_down=False, debug=False, numeric_num_decimals=-1):
     if break_down:
         st_time_model = datetime.now()
     st_time = datetime.now()
@@ -298,7 +306,15 @@ def find_next_saturated_edge(problem:problem.Problem, frozen_flows, unfrozen_flo
     for constr, src, dst in unfrozen_constraint_list:
         dual_val = constr.getAttr(GRB.attr.Pi)
         if dual_val < 0:
-            frozen_flows[src, dst] = throughput
+            if numeric_num_decimals <= 0:
+                set_throughput = throughput
+            else:
+                decimal_factor = np.power(10, numeric_num_decimals)
+                set_throughput = np.floor(throughput * decimal_factor) / decimal_factor
+                set_throughput = np.minimum(unfrozen_flows[src, dst], set_throughput)
+
+            # print(f"set demand between {src} and {dst} to {set_throughput}")
+            frozen_flows[src, dst] = set_throughput
             del unfrozen_flows[src, dst]
 
     if debug:
@@ -310,9 +326,13 @@ def find_next_saturated_edge(problem:problem.Problem, frozen_flows, unfrozen_flo
                 if (src, dst) in frozen_flows:
                     link_util[e] += flow_thru[src, dst, idx]
         for e in link_util:
+            # print(f"used capacity {e}: {link_util[e]}")
             if link_util[e] > link_cap + constants.O_epsilon:
                 print(f"capacity violation: {e} {link_util[e]}/{link_cap}")
                 raise Exception("capacity violated")
+
+        for (src, dst) in frozen_flows:
+            print(f"demand between {src} and {dst}: {frozen_flows[src, dst]}")
 
     run_time_dict[MCF_TOTAL] += (datetime.now() - st_time).total_seconds()
     if break_down:

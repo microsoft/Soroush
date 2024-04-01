@@ -175,7 +175,7 @@ def get_rates(problem: problem.Problem, paths, path_edge_idx_mapping, num_paths_
 def compute_throughput_path_based_given_tm(flow_details, fid_to_throughput_lb, link_cap, demand_vector,
                                            link_src_dst_path_dict, list_possible_paths, epsilon, alpha, beta, k,
                                            num_flows_per_barrier, num_paths_per_flow, mcf_grb_method=2, break_down=False,
-                                           link_cap_scale_multiplier=1, round_decimal_point=4):
+                                           link_cap_scale_multiplier=1, round_decimal_point=4, num_grb_threads=0):
     run_time_dict = dict()
     run_time_dict[MODEL_TIME] = 0
     run_time_dict[SOLVER_TIME] = 0
@@ -197,6 +197,8 @@ def compute_throughput_path_based_given_tm(flow_details, fid_to_throughput_lb, l
     m.setParam(GRB.param.OutputFlag, 0)
     m.setParam(GRB.param.CrossoverBasis, 1)
     m.setParam(GRB.param.Method, mcf_grb_method)
+    m.setParam(GRB.param.Threads, num_grb_threads)
+    
     flow = m.addVars(list_possible_paths, lb=0, name="flow")
 
     obj = 0
@@ -264,4 +266,3 @@ def compute_throughput_path_based_given_tm(flow_details, fid_to_throughput_lb, l
         time_retrieve = (check_point_retrieve - check_point_optimize).total_seconds()
         return flow_id_to_flow_rate_mapping, (time_model, time_optimize, time_retrieve), run_time_dict
     return flow_id_to_flow_rate_mapping, run_time_dict
-

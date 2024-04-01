@@ -4,7 +4,6 @@ from datetime import datetime
 import numpy as np
 from gurobi import *
 
-from utilities import constants
 from ncflow.lib import problem
 
 MODEL_TIME = 'model'
@@ -12,8 +11,8 @@ EXTRACT_RATE = 'extract_rate'
 MCF_SOLVER = 'mcf_solver'
 
 
-def max_min_approx(alpha, U, problem:problem.Problem, paths, link_cap, max_epsilon,
-                   break_down=False, link_cap_scale_multiplier=1, mcf_grb_method=2):
+def max_min_approx(alpha, U, problem: problem.Problem, paths, link_cap, max_epsilon,
+                   break_down=False, link_cap_scale_multiplier=1, mcf_grb_method=2, num_grb_threads=0):
     run_time_dict = dict()
     run_time_dict[MODEL_TIME] = 0
     run_time_dict[EXTRACT_RATE] = 0
@@ -55,6 +54,7 @@ def max_min_approx(alpha, U, problem:problem.Problem, paths, link_cap, max_epsil
     m = Model()
     m.setParam(GRB.param.OutputFlag, 0)
     m.setParam(GRB.param.Method, mcf_grb_method)
+    m.setParam(GRB.param.Threads, num_grb_threads)
 
     flowpath = m.addVars(list_possible_paths, lb=0, name="flowpath")
     flow = m.addVars(list_flows, lb=0, name="flow")
@@ -73,14 +73,12 @@ def max_min_approx(alpha, U, problem:problem.Problem, paths, link_cap, max_epsil
             m.addLConstr(flow[i, j, k + 1], GRB.LESS_EQUAL, bounds[k + 1] - bounds[k])
             obj += multiply_coeffs[k + 1] * flow[i, j, k + 1]
 
-
     for e in link_src_dst_path_dict:
         sum_flow = quicksum(flowpath[key] for key in link_src_dst_path_dict[e])
         m.addLConstr(sum_flow, GRB.LESS_EQUAL, link_cap, name=f"capacity_{e}")
 
     m.setObjective(obj, GRB.MAXIMIZE)
     run_time_dict[MODEL_TIME] = (datetime.now() - st_time).total_seconds()
-
 
     if break_down:
         check_point_model = datetime.now()

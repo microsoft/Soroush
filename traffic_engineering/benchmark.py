@@ -21,13 +21,13 @@ from alg import approx_water_bet_plus_mcf
 # TM_MODEL = 'poisson-high-inter'
 TM_MODEL = 'gravity'
 
-TOPO_NAME = 'Kdl.graphml'
+# TOPO_NAME = 'Kdl.graphml'
 # TOPO_NAME = 'Cogentco.graphml'
 # TOPO_NAME = 'GtsCe.graphml'
 # TOPO_NAME = 'UsCarrier.graphml'
 # TOPO_NAME = 'Colt.graphml'
 # TOPO_NAME = 'Ion.graphml'
-# TOPO_NAME = 'Uninett2010.graphml'
+TOPO_NAME = 'Uninett2010.graphml'
 LOG_DIR = f"./outputs/examples/{TOPO_NAME}/{TM_MODEL}"
 utils.ensure_dir(LOG_DIR)
 f_idx = 1

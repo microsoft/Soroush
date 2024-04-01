@@ -5,7 +5,6 @@ import numpy as np
 from scipy.sparse import csr_matrix
 
 from alg import waterfilling_utils
-from alg import approx_water_bet_old, waterfilling_utils_old
 from utilities import constants
 from ncflow.lib.problem import Problem
 
@@ -156,8 +155,8 @@ def get_rates(problem: Problem, path_split_ratio_mapping, num_paths_per_flow, nu
         flow_id_to_flow_rate_mapping[(src, dst)] = final_flow_rate[sub_fid_list]
     run_time_dict[EXTRACT_RATE] = (datetime.now() - extract_st_time).total_seconds()
 
-    print(f"approx-waterfilling;", dur)
-    print(f"approx-waterfilling detailed;", run_time_dict)
+    print("approx-waterfilling;", dur)
+    print("approx-waterfilling detailed;", run_time_dict)
     return flow_id_to_flow_rate_mapping, dur, all_satisfied, run_time_dict
 
 
@@ -182,4 +181,3 @@ def _apply_congestion(routing_matrix, flow_rate, non_zeros_fids, link_cap, updat
     if update_rate:
         flow_rate[non_zeros_fids] = flow_rate_on_link
     return fair_share
-
