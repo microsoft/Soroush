@@ -64,7 +64,7 @@ def compute_throughput_given_jobs(job_details, job_allocation_matrix, norm_throu
     t_lb = cp.Variable(num_bins - 1)
     normalized_effective_throughput = cp.sum(cp.multiply(final_throughput_coefficient, allocation_vars), axis=1)
     total_effective_throughput = cp.sum(cp.multiply(throughput_coefficient, allocation_vars))
-    objective = cp.Maximize((1 - alpha) * cp.sum(cp.multiply(multi_coeff_obj, normalized_effective_throughput)) + 
+    objective = cp.Maximize((1 - alpha) * cp.sum(cp.multiply(multi_coeff_obj, normalized_effective_throughput)) +
                             alpha * total_effective_throughput)
 
     last_bin_starting_jidx = num_jobs_per_barrier * (num_bins - 1)

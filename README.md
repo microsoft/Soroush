@@ -18,20 +18,37 @@
 |           └── utilities   # common utility functions for cluster scheduling. 
 |
 |
-└── traffic_engineering     # Scripts and implementations for the TE usecase
+└── traffic_engineering     # Scripts and implementations for the TE usecase.
             |
-            ├── alg         # implementation of all the allocators in Soroush
+            ├── alg         # implementation of all the allocators in Soroush.
             |
-            ├── benchmarks  #
+            ├── benchmarks  # code for benchmarking different allocators.
             |
-            ├── scripts     #
+            ├── scripts     # code for parsing the log files and drawing plots.
             |
-            └── utilities   #
+            └── utilities   # common utilitiy functions for traffic engineering.
 ```
 
 ### Installation
+Soroush is implemented in Python. We tested this repo on Ubuntu 18.04 and Python 3.8.13.
 
-Please refer to the Readme under `cluster_scheduling` and `traffic_engineering` for problem specific guidelines.
+
+
+* Install the necessary requirements.
+
+```bash
+pip install -r requirements.txt
+```
+
+* Install Gurobi. Our experiments are on Gurobi v10.0.
+
+```bash
+conda install gurobi=10.0
+```
+You also need a license for Gurobi. If you are in academia, you can follow the instructions on Gurobi's website to obtain a license.
+
+* Please refer to the README under `cluster_scheduling` and `traffic_engineering` for problem specific installation guidelines.
+
 ## Citation
 ```bibtex
 @inproceedings{soroush,
