@@ -1,0 +1,8 @@
+cluster_scheduling/gavel
+traffic_engineering/ncflow
+traffic_engineering/outputs
+traffic_engineering/figs
+*.lp
+*.ilp
+*.ipynb_checkpoints
+*.pyc
