@@ -46,8 +46,7 @@ def get_homogeneous_routing_matrix(problem: Problem, scale_factor_vector=None, r
     capacity_vector[:num_gpu_types] = gpu_cap_vector[:]
 
     if return_details:
-        return scale_matrix, row_list, column_list, capacity_vector, jid_to_sub_jid_mapping, \
-               num_gpu_types + num_jobs, sub_jid
+        return scale_matrix, row_list, column_list, capacity_vector, jid_to_sub_jid_mapping, num_gpu_types + num_jobs, sub_jid
 
     weight_matrix = np.ones(sub_jid)
     return scale_matrix, weight_matrix, capacity_vector, jid_to_sub_jid_mapping, sub_jid
@@ -81,6 +80,7 @@ def get_heterogeneous_routing_matrix(problem: Problem, priority_aware=False, thr
                               shape=(num_rows, num_sub_jobs))
     return scale_matrix, weight_matrix, capacity_vector, jid_to_sub_jid_mapping, num_sub_jobs
 
+
 def get_heterogeneous_routing_matrix_1(problem: Problem, priority_aware=False, throughput_aware=False):
     list_jobs = problem.sparse_job_list
     gpu_cap_vector = problem.capacity_vector
@@ -105,7 +105,7 @@ def get_heterogeneous_routing_matrix_1(problem: Problem, priority_aware=False, t
         if throughput_aware:
             coeff = np.power(constants.SPLIT_CONST, throughput_list) * (throughput_list >= constants.O_epsilon)
             coeff /= np.sum(coeff)
-            weight *= coeff #* (np.sum(throughput_list) / throughput_list)
+            weight *= coeff  # * (np.sum(throughput_list) / throughput_list)
             np.nan_to_num(weight, posinf=0, neginf=0, copy=False)
         scale_factor_data_list[np_idx:np_idx + num_gpu_types] = weight
         weight /= scale_factor

@@ -8,7 +8,7 @@ from alg import approx_waterfilling
 from alg import waterfilling_utils
 from scripts.problem import Problem
 from gavel.scheduler.job_id_pair import JobIdPair
-from utilities import constants
+# from utilities import constants
 
 
 def get_rates(problem: Problem, num_approx_iter, epsilon, k, alpha, beta, priority_aware=False, throughput_aware=False,
@@ -36,12 +36,12 @@ def get_rates(problem: Problem, num_approx_iter, epsilon, k, alpha, beta, priori
         for gid, gpu in enumerate(problem.gpu_list):
             job_id_to_job_rate_mapping[JobIdPair(jid, None)][gpu] = final_job_allocation_matrix[jid, gid]
 
-    #### Checking the final solution
-    throughput_coeff = np.empty_like(job_allocation_matrix)
-    for jid, (priority_weight, scale_factor, throughput_list) in job_details:
-        throughput_coeff[jid] = throughput_list
-    final_thru = np.sum(np.multiply(throughput_coeff, final_job_allocation_matrix), axis=1)
-    initial_thru = np.sum(np.multiply(throughput_coeff, job_allocation_matrix), axis=1)
+    # Checking the final solution
+    # throughput_coeff = np.empty_like(job_allocation_matrix)
+    # for jid, (priority_weight, scale_factor, throughput_list) in job_details:
+    #     throughput_coeff[jid] = throughput_list
+    # final_thru = np.sum(np.multiply(throughput_coeff, final_job_allocation_matrix), axis=1)
+    # initial_trhu = np.sum(np.multiply(throughput_coeff, job_allocation_matrix), axis=1)
     # assert np.all(final_thru >= initial_thru - constants.O_epsilon)
     if break_down:
         return job_id_to_job_rate_mapping, (dur, detailed_dur)
@@ -71,7 +71,7 @@ def compute_throughput_given_jobs(job_details, job_allocation_matrix, norm_throu
     t_lb = cp.Variable(num_bins - 1)
     normalized_effective_throughput = cp.sum(cp.multiply(final_throughput_coefficient, allocation_vars), axis=1)
     total_effective_throughput = cp.sum(cp.multiply(throughput_coefficient, allocation_vars))
-    objective = cp.Maximize((1 - alpha) * cp.sum(cp.multiply(multi_coeff_obj, normalized_effective_throughput)) +
+    objective = cp.Maximize((1 - alpha) * cp.sum(cp.multiply(multi_coeff_obj, normalized_effective_throughput)) + 
                             alpha * total_effective_throughput)
 
     last_bin_starting_jidx = num_jobs_per_barrier * (num_bins - 1)
@@ -102,7 +102,7 @@ def compute_throughput_given_jobs(job_details, job_allocation_matrix, norm_throu
         QCPDual=0,
         # Crossover=0
     )
-    #Crossover=0, BarConvTol=1e-4
+    # Crossover=0, BarConvTol=1e-4
     if break_down:
         curr_time = datetime.now()
         time_model = (checkpoint1 - st_time_model).total_seconds()
@@ -147,6 +147,3 @@ def compute_throughput_given_jobs(job_details, job_allocation_matrix, norm_throu
 #         time_model = (datetime.now() - st_time_model).total_seconds()
 #         return allocation_vars.value, time_model
 #     return allocation_vars.value
-
-    
-
