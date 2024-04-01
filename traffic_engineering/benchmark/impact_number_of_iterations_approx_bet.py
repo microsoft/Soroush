@@ -52,6 +52,8 @@ danna_fid_to_rate_mapping = output_fairness_baseline[2]
 utils.revise_list_commodities(problem)
 danna_to_fid_rate_vector = np.zeros(shape=len(problem.sparse_commodity_list))
 danna_fid_to_rate = utils.read_pickle_file(danna_fid_to_rate_mapping[num_paths_per_flow][f"'{file_name[4]}'"])
+
+print(f"=== num_comm: {len(problem.sparse_commodity_list)}")
 for fid, (src, dst, _) in problem.sparse_commodity_list:
     danna_to_fid_rate_vector[fid] = np.sum(danna_fid_to_rate[src, dst])
 
@@ -88,8 +90,8 @@ for i in range(num_iter_bet):
         print(f"= split ratio change {iter_to_split_ratio_change_mapping[i]}")
 
 
-folder_name = f"../outputs/impact_iteration_approx_bet_{utils.get_fid()}"
-utils.write_to_file_as_pickle(iter_to_total_flow_mapping, folder_name, folder_name + "/total_flow.pickle")
-utils.write_to_file_as_pickle(iter_to_fairness_mapping, folder_name, folder_name + "/fairness.pickle")
-utils.write_to_file_as_pickle(iter_to_split_ratio_change_mapping, folder_name, folder_name + "/split_ratio_change.pickle")
+# folder_name = f"../outputs/impact_iteration_approx_bet_{utils.get_fid()}"
+# utils.write_to_file_as_pickle(iter_to_total_flow_mapping, folder_name, folder_name + "/total_flow.pickle")
+# utils.write_to_file_as_pickle(iter_to_fairness_mapping, folder_name, folder_name + "/fairness.pickle")
+# utils.write_to_file_as_pickle(iter_to_split_ratio_change_mapping, folder_name, folder_name + "/split_ratio_change.pickle")
 

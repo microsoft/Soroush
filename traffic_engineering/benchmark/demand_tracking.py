@@ -210,10 +210,12 @@ class SWAN(object):
     def runtime(self):
         return self.run_time
 
+
 class INSTANTSWAN(SWAN):
     @property
     def runtime(self):
         return 0
+
 
 def compute_satisfied_demand(problem, sol_dict, residual_factor):
     if sol_dict is None:
@@ -335,8 +337,8 @@ if __name__ == '__main__':
         # EB(TOPOLOGY),
         # SWAN(),
         # INSTANTDANNA(),
-          INSTANTSWAN(),
-          SWAN(),
+        INSTANTSWAN(),
+        SWAN(),
     ]
 
     rel_delta_abs_mean = 0.35
@@ -347,7 +349,7 @@ if __name__ == '__main__':
                      str(SCALE_FACTOR) + '_' + str(idx) + '_' + str(rel_delta_abs_mean) + '_' + \
                      str(rel_delta_std)
 
-    ### numbers borrowed from NCFlow
+    # numbers borrowed from NCFlow
     problems = generate_sequence_of_tms(seed_prob,
                                         num_tms,
                                         rel_delta_abs_mean=rel_delta_abs_mean,
