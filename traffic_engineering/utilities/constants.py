@@ -71,3 +71,10 @@ TOPOLOGY_TO_APPROX_BET_MCF_PARAMS = {
     'TataNld.graphml': (15, 1e-2, 1e-2, 1, 1000, 1, 20, 1.0),
     # 'Kdl.graphml',
 }
+POP_TM_TYPE_TO_CLIENT_SPLIT_FRACTION = {
+    'uniform': 0,
+    'bimodal': 0,
+    'gravity': 0,
+    'poisson-high-inter': 0,
+    'poisson-high-intra': 0.75,
+}

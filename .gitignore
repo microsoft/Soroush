@@ -1,8 +1,13 @@
 cluster_scheduling/gavel
 traffic_engineering/ncflow
+traffic_engineering/POP
 traffic_engineering/outputs
 traffic_engineering/figs
 *.lp
 *.ilp
 *.ipynb_checkpoints
 *.pyc
+*.tar.gz
+*.txt
+*.log
+*.json

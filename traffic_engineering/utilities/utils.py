@@ -3,8 +3,12 @@ import os
 import uuid
 import datetime
 
+import numpy as np
+
 from glob import iglob
 from scipy.stats import gmean
+
+from ncflow.lib import problem
 
 
 def find_topo_tm_fname(topo_name, tm_model):
@@ -14,8 +18,22 @@ def find_topo_tm_fname(topo_name, tm_model):
             '../ncflow/traffic-matrices/{}/{}*_traffic-matrix.pkl'.format(
                 tm_model, topo_name)):
         vals = os.path.basename(tm_fname)[:-4].split('_')
-        _, traffic_seed, scale_factor = vals[1], int(vals[2]), float(vals[3])
+        _, _, scale_factor = vals[1], int(vals[2]), float(vals[3])
         fname_list.append((topo_name, tm_model, scale_factor, topo_fname, tm_fname))
+    return fname_list
+
+
+def find_topo_tm_scale_factor_fname(topo_name, tm_model, scale_factor):
+    fname_list = []
+    topo_fname = os.path.join('..', 'ncflow', 'topologies', 'topology-zoo', topo_name)
+    for tm_fname in iglob(
+            '../ncflow/traffic-matrices/{}/{}*_traffic-matrix.pkl'.format(
+                tm_model, topo_name)):
+        vals = os.path.basename(tm_fname)[:-4].split('_')
+        _, _, traffic_scale_factor = vals[1], int(vals[2]), float(vals[3])
+        if traffic_scale_factor != scale_factor:
+            continue
+        fname_list.append((topo_name, tm_model, traffic_scale_factor, topo_fname, tm_fname))
     return fname_list
 
 
@@ -74,7 +92,7 @@ def revise_list_commodities(problem):
     for fid, (i, j, demand) in problem.sparse_commodity_list:
         if demand <= 0:
             found_zero = True
-            #print(f"flow {fid} with src {i} dst {j} demand {demand} removed!!")
+            # print(f"flow {fid} with src {i} dst {j} demand {demand} removed!!")
             list_to_remove.append((fid, (i, j, demand)))
 
     if found_zero:
@@ -84,3 +102,14 @@ def revise_list_commodities(problem):
             problem.sparse_commodity_list[idx] = (idx, (src, dst, demand))
     for fid, (i, j, demand) in problem.sparse_commodity_list:
         assert demand > 0
+
+
+def round_demands(problem: problem.Problem, num_decimals):
+    assert num_decimals > 0
+    p = problem.copy()
+    for u in p.G.nodes:
+        for v in p.G.nodes:
+            if problem.traffic_matrix.tm[u, v] > 0:
+                p.traffic_matrix.tm[u, v] = np.round(problem.traffic_matrix.tm[u, v], num_decimals)
+    p._invalidate_commodity_lists()
+    return p

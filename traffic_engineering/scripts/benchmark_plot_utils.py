@@ -29,6 +29,21 @@ def get_output_run_time(approach_name, run_time_dict, approach_to_valid_for_run_
     return run_time
 
 
+def get_output_pop_run_time(approach_name, run_time_dict, pop_always_key_list, pop_split_key_list,
+                            num_pop_partitions, approach_to_valid_for_run_time):
+    run_time = 0
+    for pop_split in pop_split_key_list:
+        partition_max_dur = 0
+        for pop_id in range(num_pop_partitions):
+            per_partition_run_time = get_output_run_time(approach_name, run_time_dict[pop_split][pop_id], approach_to_valid_for_run_time)
+            partition_max_dur = max(per_partition_run_time, partition_max_dur)
+        run_time += partition_max_dur
+
+    for pop_always in pop_always_key_list:
+        run_time += run_time_dict[pop_always]
+    return run_time
+
+
 def parse_line(line, dir_name, approach_name, is_approx, approach_to_valid_for_run_time, topo_name_to_approx_param=None):
     model_param, other_param = line.split(")")
     flow_rate_file_name = dir_name + "/{}_per_path_flow.pickle"
