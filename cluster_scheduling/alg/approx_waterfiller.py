@@ -4,13 +4,31 @@ from datetime import datetime
 import numpy as np
 
 from alg import waterfilling_utils
-from utilities import constants
 from scripts.problem import Problem
 from gavel.scheduler.job_id_pair import JobIdPair
 
 
-def get_rates(problem: Problem, num_iter, priority_aware=False, throughput_aware=False,
-              break_down=False, return_matrix=False):
+def get_rates(problem: Problem,
+              num_iter: int,
+              priority_aware: bool = False,
+              throughput_aware: bool = False,
+              break_down: bool = False,
+              return_matrix: bool = False):
+    """ A fast heuristic to compute an approximate max-min fair solution without any optimizations.
+
+    Args:
+        problem: a description of a cluster scheduling problem  (e.g., available GPUs).
+        num_iter: first computes exact single-path waterfilling allocation for the (num_iter - 1) smallest jobs
+            and then uses our approx single iteration waterfiller to compute the allocation for the rest.
+        priority_aware: if True, consider priority of the jobs in max-min fair computation.
+        throughput_aware: if True, consider heterogenous GPU settings in max-min fair computation.
+        break_down: if True, break down the run-time.
+        return_matrix: if True, return allocation as numpy matrix instead of a dictionary.
+
+    Returns:
+        job_id_to_job_rate_mapping: a mapping from job id to its assignment from each GPU.
+        dur: time to find the allocation.
+    """
     st_time = datetime.now()
     output = waterfilling_utils.get_routing_matrix(problem, priority_aware=priority_aware, throughput_aware=throughput_aware)
     # print(f"creating traffic;", (datetime.now() - st_time).total_seconds())
@@ -24,7 +42,7 @@ def get_rates(problem: Problem, num_iter, priority_aware=False, throughput_aware
 
     num_scaled_jobs_per_gpu = scale_matrix @ np.ones(shape=num_jobs)
     unfreezed_jobs = np.ones(shape=num_jobs)
-    for i in range(num_iter - 1):
+    for _ in range(num_iter - 1):
         current_fair_share = capacity_vector / num_scaled_jobs_per_gpu
         s_sparse = scale_matrix @ scale_matrix.transpose()
         min_gpu = waterfilling_utils.min_neighbor_fair_share(s_sparse, current_fair_share)
@@ -46,12 +64,6 @@ def get_rates(problem: Problem, num_iter, priority_aware=False, throughput_aware
         per_job_allocation = np.compress(bottlenecked_jobs, per_job_allocation)
 
         num_scaled_jobs_per_gpu = scale_matrix @ np.ones(shape=per_job_allocation.shape[0])
-        # while num_scaled_jobs_per_gpu.shape[0] and np.any(num_scaled_jobs_per_gpu == 0):
-        #     mask = (num_scaled_jobs_per_gpu > 0)
-        #     routing_matrix = routing_matrix[mask]
-        #     scale_matrix = scale_matrix[mask]
-        #     capacity_vector = np.compress(mask, capacity_vector)
-        #     num_scaled_jobs_per_gpu = scale_matrix @ np.ones(shape=per_job_allocation.shape[0])
 
     current_fair_share = capacity_vector / num_scaled_jobs_per_gpu
     sorted_idx = np.argsort(current_fair_share)
@@ -84,7 +96,7 @@ def get_rates(problem: Problem, num_iter, priority_aware=False, throughput_aware
         sub_jid_list = jid_to_sub_jid_mapping[jid]
         for gid, gpu in enumerate(problem.gpu_list):
             job_id_to_job_rate_mapping[JobIdPair(jid, None)][gpu] = final_job_allocation[sub_jid_list][gid]
-    print(f"approx-waterfilling;", dur)
+    print(f"approx-waterfilling: {dur}")
     return job_id_to_job_rate_mapping, dur
 
 
@@ -107,5 +119,3 @@ def _apply_congestion(scale_matrix, job_allocation, non_zeros_jids, gpu_cap, upd
     if update_rate:
         job_allocation[non_zeros_jids] = job_allocation_on_gpus
     return fair_share
-
-

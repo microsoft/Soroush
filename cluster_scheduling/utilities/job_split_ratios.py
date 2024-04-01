@@ -21,4 +21,3 @@ def get_split_ratios_specific_job(throughput_list, base_split, split_type):
     elif split_type == constants.EXPONENTIAL_DECAY_LEN:
         return get_exponential_decay_len_split_ratio(throughput_list, base_split)
     raise Exception
-

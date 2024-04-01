@@ -3,20 +3,7 @@ import os
 import uuid
 import datetime
 
-from glob import iglob
 from scipy.stats import gmean
-
-
-# def find_topo_tm_fname(topo_name, tm_model):
-#     fname_list = []
-#     topo_fname = os.path.join('..', 'ncflow', 'topologies', 'topology-zoo', topo_name)
-#     for tm_fname in iglob(
-#             '../ncflow/traffic-matrices/{}/{}*_traffic-matrix.pkl'.format(
-#                 tm_model, topo_name)):
-#         vals = os.path.basename(tm_fname)[:-4].split('_')
-#         _, traffic_seed, scale_factor = vals[1], int(vals[2]), float(vals[3])
-#         fname_list.append((topo_name, tm_model, scale_factor, topo_fname, tm_fname))
-#     return fname_list
 
 
 def write_to_file(in_obj, dir_path, file_path):

@@ -9,7 +9,28 @@ from scripts.problem import Problem
 from gavel.scheduler.job_id_pair import JobIdPair
 
 
-def get_rates(alpha, U, problem: Problem, min_epsilon, break_down=False):
+def get_rates(
+        alpha: float,
+        U: float,
+        problem: Problem,
+        min_epsilon: float,
+        break_down: bool = False):
+    """ Compute the exact max-min fair solution using a single optimization.
+
+    Args:
+        alpha: determines the increase in the bin sizes. Each bin is alpha times larger than
+            the previous bin.
+        U: determines the smallest bin size.
+        problem: a description of a cluster scheduling problem  (e.g., available GPUs).
+        min_epsilon: determines the reward for the largest user (we use this to find the epsilon
+            in epsilon-rewarding).
+        break_down: if True, returns the break down of the run-time.
+
+    Returns:
+        job_id_to_job_rate_mapping: a mapping from job id to its assignment from each GPU.
+        dur: time to find the allocation.
+    """
+
     st_time = datetime.now()
 
     job_details = problem.sparse_job_list

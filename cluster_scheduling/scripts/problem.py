@@ -10,6 +10,7 @@ from utilities import constants
 class Problem(object):
     def __init__(self, cluster_spec, job_dict=None, oracle_throughputs=None, throughput_model='gavel', job_mode='single',
                  seed=0, problem_scale_factor=1, space_sharing=False, priority_mapping=None):
+        """ A cluster scheduling problem instance """
 
         self.cluster_spec = cluster_spec
         self.throughput_model = throughput_model
@@ -53,7 +54,6 @@ class Problem(object):
             elif throughput_model == 'gavel':
                 self.job_id_to_throughput_mapping = self.GavelModelJobs()
             raise Exception
-
 
     def print_stats(self):
         print("=" * 10)
