@@ -3,7 +3,7 @@
 `Soroush` is a general and scalable max-min fair allocator. It consists of a group of approximate and heuristic methods that (a) solve at most one optimization, and (b) enable users to control the trade-offs between efficiency, fairness, and speed. For more information, see our NSDI24 paper ([Solving Max-Min Fair Resource Allocations Quickly on Large Graphs](https://www.usenix.org/conference/nsdi24/presentation/namyar-solving)).
 
 <p align="center">
-<img src="comparison.png" width="90%">
+<img src="figures/comparison.png" width="90%">
 </p>
 
 
