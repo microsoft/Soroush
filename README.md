@@ -13,7 +13,8 @@
 |           |       
 |           ├── alg         # implementation of all the allocators in Soroush.
 |           |
-|           ├── scripts     # code for generating different problem instances and benchmarking different allocators.
+|           ├── scripts     # code for generating different problem instances
+|           |               # and benchmarking different allocators.
 |           |
 |           └── utilities   # common utility functions for cluster scheduling. 
 |
@@ -29,7 +30,7 @@
             └── utilities   # common utilitiy functions for traffic engineering.
 ```
 
-### Installation
+## Installation
 Soroush is implemented in Python. We tested this repo on Ubuntu 18.04 and Python 3.8.13.
 
 
@@ -82,3 +83,10 @@ trademarks or logos is subject to and must follow
 [Microsoft's Trademark & Brand Guidelines](https://www.microsoft.com/en-us/legal/intellectualproperty/trademarks/usage/general).
 Use of Microsoft trademarks or logos in modified versions of this project must not cause confusion or imply Microsoft sponsorship.
 Any use of third-party trademarks or logos are subject to those third-party's policies.
+
+## Contacts
+
+You can contact us with any questions:
+- Pooria Namyar (namyar@usc.edu)
+- Behnaz Arzani (bearzani@microsoft.com)
+- Srikanth Kandula (srikanth@microsoft.com)
