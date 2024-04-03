@@ -41,10 +41,10 @@ Soroush is implemented in Python. We tested this repo on Ubuntu 18.04 and Python
 pip install -r requirements.txt
 ```
 
-* Install Gurobi. Our experiments are on Gurobi v10.0.
+* Install Gurobi. Our experiments are on Gurobi v9.1.
 
 ```bash
-conda install gurobi=10.0
+conda install gurobi=9.1.1
 ```
 You also need a license for Gurobi. If you are in academia, you can follow the instructions on Gurobi's website to obtain a license.
 
